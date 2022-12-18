@@ -4,7 +4,7 @@ module Main where
 --import Data.List
 import Text.Parsec
 import Text.Parsec.String
-
+import Numeric (readHex)
 
 type Label = String
 
@@ -16,6 +16,9 @@ data Operation = Mov Value Value | Interrupt Value | Inc Value | Dec Value | Cmp
 
 letterDigitParser :: Parsec String () Char
 letterDigitParser = oneOf ['0'..'9'] <|> oneOf ['a'..'z'] <|> oneOf ['A'..'Z']
+
+getHexFromStr :: String -> Int
+getHexFromStr str = fst $ head $ readHex str
 
 -- value parsers
 
@@ -34,10 +37,14 @@ anyValParser = try registerParser <|> try hexParser <|> intParser
 onlyValParser :: Parser Value
 onlyValParser = try hexParser <|> intParser
 
-valToBin :: Value -> String
-valToBin(Register a) = "(register "++a++")"
-valToBin(Int b) = "(Integer value "++b++")"
-valToBin(Hex c) = "(Hexadecimal value 0x"++c++")"
+valToBin :: Value -> Int
+valToBin(Register a) |a=="al"=0
+                     |a=="cl"=1
+                     |a=="dl"=2
+                     |a=="bl"=3
+
+valToBin(Int b) = read b::Int
+valToBin(Hex c) = getHexFromStr c
 
 --
 
@@ -64,17 +71,17 @@ cmpParser = Cmp <$>  (string "cmp" >> many1 space >> anyValParser) <*> (char ','
 finalParser :: Parser Operation
 finalParser = try movParser <|> try interruptParser <|> try incParser <|> try decParser <|> try cmpParser <|> try jmpParser
 
-insToBin :: Operation -> String
-insToBin (Mov a b) = "copying value from "++(valToBin $ b)++" to "++(valToBin $ a)
-insToBin (Interrupt code) = "interrupting with code "++(valToBin $ code)
-insToBin (Inc reg) = "incrementing "++(valToBin $ reg)++" value"
-insToBin (Dec reg) = "decrementing "++(valToBin $ reg)++" value"
-insToBin (Cmp a b) = "comparing "++(valToBin $ a)++" with "++(valToBin $ b)
-insToBin (Jmp l) = "unconditional jump to "++l
+insToBin :: Operation -> [Int]
+insToBin (Mov a b) = [176+(valToBin $ a)]++[(valToBin $ b)]
+insToBin (Interrupt code) = [205]++[(valToBin $ code)]
+insToBin (Inc reg) = [254]++[192+(valToBin $ reg)]
+insToBin (Dec reg) = [254]++[200+(valToBin $ reg)]
+insToBin (Cmp _ _) = [0,0]
+insToBin (Jmp _) = [0,0]
 
 --
-codeToIns :: [Operation] -> String
-codeToIns code = unlines $ map insToBin code
+codeToIns :: [Operation] -> [[Int]]
+codeToIns code = map insToBin code
 
 virtualFile :: String
 virtualFile = "mov al,123\nmov bl,0xA\nmov dl,al\ninc al\ndec dl\ncmp al,123\nint 0x10\njmp test\n"
@@ -85,5 +92,5 @@ main = do putStrLn $ ("input:\n"++virtualFile)
           putStrLn $ "output:"
           case parsed of
             Left err -> print err
-            Right corr -> putStrLn (codeToIns $ corr)
+            Right corr -> print (codeToIns $ corr)
  
