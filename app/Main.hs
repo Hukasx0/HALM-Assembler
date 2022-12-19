@@ -5,6 +5,8 @@ module Main where
 import Text.Parsec
 import Text.Parsec.String
 import Numeric (readHex)
+import Data.Word
+import qualified Data.ByteString.Lazy as B
 
 type Label = String
 
@@ -37,14 +39,14 @@ anyValParser = try registerParser <|> try hexParser <|> intParser
 onlyValParser :: Parser Value
 onlyValParser = try hexParser <|> intParser
 
-valToBin :: Value -> Int
+valToBin :: Value -> Word8
 valToBin(Register a) |a=="al"=0
                      |a=="cl"=1
                      |a=="dl"=2
                      |a=="bl"=3
 
-valToBin(Int b) = read b::Int
-valToBin(Hex c) = getHexFromStr c
+valToBin(Int b) = read b::Word8
+valToBin(Hex c) = fromIntegral $ getHexFromStr c
 
 --
 
@@ -71,7 +73,7 @@ cmpParser = Cmp <$>  (string "cmp" >> many1 space >> anyValParser) <*> (char ','
 finalParser :: Parser Operation
 finalParser = try movParser <|> try interruptParser <|> try incParser <|> try decParser <|> try cmpParser <|> try jmpParser
 
-insToBin :: Operation -> [Int]
+insToBin :: Operation -> [Word8]
 insToBin (Mov a b) = [176+(valToBin $ a)]++[(valToBin $ b)]
 insToBin (Interrupt code) = [205]++[(valToBin $ code)]
 insToBin (Inc reg) = [254]++[192+(valToBin $ reg)]
@@ -80,7 +82,7 @@ insToBin (Cmp _ _) = [0,0]
 insToBin (Jmp _) = [0,0]
 
 --
-codeToIns :: [Operation] -> [[Int]]
+codeToIns :: [Operation] -> [[Word8]]
 codeToIns code = map insToBin code
 
 virtualFile :: String
@@ -92,5 +94,8 @@ main = do putStrLn $ ("input:\n"++virtualFile)
           putStrLn $ "output:"
           case parsed of
             Left err -> print err
-            Right corr -> print (codeToIns $ corr)
+            Right corr -> do
+                          putStrLn "Writing binary to out.bin"
+                          B.writeFile "out.bin" (B.pack $ concat $ codeToIns $ corr)
+                          print (concat $ codeToIns $ corr)
  
