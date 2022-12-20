@@ -25,8 +25,11 @@ jmpParser = Jmp <$> (string "jmp" >> many1 space >> many1 letterDigitParser)
 cmpParser :: Parser Operation
 cmpParser = Cmp <$>  (string "cmp" >> many1 space >> anyValParser) <*> (char ',' >> spaces >> anyValParser)
 
+addByParser :: Parser Operation
+addByParser = AdBy <$> (string "addBytes" >> spaces >> char '=' >> spaces >> (onlyValParser `sepBy` (char ',') ))
+
 finalParser :: Parser Operation
-finalParser = try movParser <|> try interruptParser <|> try incParser <|> try decParser <|> try cmpParser <|> try jmpParser
+finalParser = try movParser <|> try interruptParser <|> try incParser <|> try decParser <|> try cmpParser <|> try jmpParser <|> addByParser
 
 insToBin :: Operation -> [Word8]
 insToBin (Mov a b) = [176+(valToBin $ a)]++[(valToBin $ b)]
@@ -35,3 +38,4 @@ insToBin (Inc reg) = [254]++[192+(valToBin $ reg)]
 insToBin (Dec reg) = [254]++[200+(valToBin $ reg)]
 insToBin (Cmp _ _) = [0,0]
 insToBin (Jmp _) = [0,0]
+insToBin (AdBy bytes) = map valToBin bytes
