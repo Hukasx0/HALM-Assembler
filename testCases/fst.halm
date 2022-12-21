@@ -1,0 +1,9 @@
+addBytes = 0xff,123,0xA
+mov al,123
+mov bl,0xA
+mov dl,al
+inc al
+dec dl
+cmp al,123
+int 0x10
+jmp test
