@@ -1,4 +1,4 @@
-addBytes = 0xff,123,0xA
+addBytes = 'H','e','l','l','o',123,0xA
 mov al,123
 mov bl,0xA
 mov dl,al
