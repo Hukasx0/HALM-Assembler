@@ -32,10 +32,10 @@ finalParser :: Parser Operation
 finalParser = try movParser <|> try interruptParser <|> try incParser <|> try decParser <|> try cmpParser <|> try jmpParser <|> addByParser
 
 insToBin :: Operation -> [Word8]
-insToBin (Mov a b) = [176+(valToBin $ a)]++[(valToBin $ b)]
-insToBin (Interrupt code) = [205]++[(valToBin $ code)]
-insToBin (Inc reg) = [254]++[192+(valToBin $ reg)]
-insToBin (Dec reg) = [254]++[200+(valToBin $ reg)]
+insToBin (Mov a b) = [176+(valToBin $ a)!!0]++(valToBin b)
+insToBin (Interrupt code) = [205]++[(valToBin $ code)!!0]
+insToBin (Inc reg) = [254]++[192+(valToBin $ reg)!!0]
+insToBin (Dec reg) = [254]++[200+(valToBin $ reg)!!0]
 insToBin (Cmp _ _) = [0,0]
 insToBin (Jmp _) = [0,0]
-insToBin (AdBy bytes) = map valToBin bytes
+insToBin (AdBy bytes) = concat $ map valToBin bytes
