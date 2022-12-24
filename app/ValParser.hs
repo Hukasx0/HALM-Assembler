@@ -21,6 +21,9 @@ charParser = Ch <$> ( between (char '\'') (char '\'') (anyChar) )
 stringParser :: Parser Value
 stringParser = Str <$> (between (char '"') (char '"') (many (noneOf "\"")))
 
+pureStringParser :: Parser String
+pureStringParser = between (char '"') (char '"') (many (noneOf "\""))
+
 anyValParser :: Parser Value
 anyValParser = try registerParser <|> try hexParser <|> try intParser <|> try charParser <|> stringParser
 

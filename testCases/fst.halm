@@ -1,4 +1,5 @@
 addBytes = "Hello, world!",0xA
+doSh = "echo 'This is a message after compilation :D'"
 mov al,123
 mov bl,0xA
 mov dl,al
