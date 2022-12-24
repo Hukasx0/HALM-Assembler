@@ -1,3 +1,9 @@
+-- This is Haskell type comment
+
+{-
+    This is also Haskell type comment
+-}
+
 addBytes = "Hello, world!",0xA
 doSh = "echo 'This is a message after compilation :D'"
 mov al,123
