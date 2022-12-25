@@ -18,8 +18,8 @@ codeToIO code = mapM_ insToIO code
 
 finalParser :: Parser Operation
 finalParser = try movParser <|> try interruptParser <|> try incParser <|> try decParser 
-              <|> try cmpParser <|> try jmpParser <|> try addByParser <|> doShParser 
-              <|> lineCommentParser <|> commentParser
+              <|> try cmpParser <|> try jmpParser <|> try addByParser <|> try doShParser 
+              <|> try lineCommentParser <|> commentParser
 
 main :: IO ()
 main = do
