@@ -18,7 +18,8 @@ executable halm
     build-depends:    base ^>=4.17.0.0,
                       parsec ^>=3.1.15.0,
                       bytestring ^>=0.11.3.1,
-                      process ^>=1.6.15.0
+                      process ^>=1.6.15.0,
+                      text ^>=2.0.1
 
 
     hs-source-dirs:   app
