@@ -20,7 +20,7 @@ decParser :: Parser Operation
 decParser = Dec <$> (string "dec" >> many1 space >> registerParser)
 
 jmpParser :: Parser Operation
-jmpParser = Jmp <$> (string "jmp" >> many1 space >> many1 letterDigitParser)
+jmpParser = Jmp <$> (string "jmp" >> many1 space >> many1 (noneOf " \n\r"))
 
 cmpParser :: Parser Operation
 cmpParser = Cmp <$>  (string "cmp" >> many1 space >> anyValParser) <*> (char ',' >> spaces >> anyValParser)
@@ -34,6 +34,7 @@ insToBin (Interrupt code) = [205]++[(valToBin $ code)!!0]
 insToBin (Inc reg) = [254]++[192+(valToBin $ reg)!!0]
 insToBin (Dec reg) = [254]++[200+(valToBin $ reg)!!0]
 insToBin (Cmp _ _) = [0,0]
-insToBin (Jmp _) = [0,0]
+insToBin (Jmp "$") = [235,254]
+insToBin (Jmp _) = [235,0]
 insToBin (AdBy bytes) = concat $ map valToBin bytes
 insToBin _ = []

@@ -1,26 +1,26 @@
--- Simple bios interrupt program that also displays "HELLO"
+-- Simple bios interrupt program that displays "HELLO"
 
-addBytes = 0xb4,0x0e
+mov ah,0x0e
 mov al,'H'
 int 0x10
 
-addBytes = 0xb4,0x0e
+mov ah,0x0e
 mov al,'E'
 int 0x10
 
-addBytes = 0xb4,0x0e
+mov ah,0x0e
 mov al,'L'
 int 0x10
 
-addBytes = 0xb4,0x0e
+mov ah,0x0e
 mov al,'L'
 int 0x10
 
-addBytes = 0xb4,0x0e
+mov ah,0x0e
 mov al,'O'
 int 0x10
 
-addBytes = 0xeb,0xfe
+jmp $
 
 addBytes = (times 478 0x0)
 addBytes = 0x55,0xaa

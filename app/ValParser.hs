@@ -7,7 +7,8 @@ import Data.Word
 import Values
 
 registerParser :: Parser Value
-registerParser = Register <$> (string "al" <|> string "bl" <|> string "cl" <|> string "dl")
+registerParser = Register <$> (try (string "al") <|>try (string "bl") <|>try (string "cl") <|>try (string "dl")
+                               <|> string "ah" <|> string "bh" <|> string "ch" <|> string "dh")
 
 intParser :: Parser Value
 intParser = Int <$> (many1 digit)
@@ -38,6 +39,10 @@ valToBin(Register a) |a=="al"=[0]
                      |a=="cl"=[1]
                      |a=="dl"=[2]
                      |a=="bl"=[3]
+                     |a=="ah"=[4]
+                     |a=="ch"=[5]
+                     |a=="dh"=[6]
+                     |a=="bh"=[7]
 
 valToBin(Int b) = [(read b::Word8)]
 valToBin(Hex c) = [(fromIntegral $ getHexFromStr c)]
