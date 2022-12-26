@@ -24,4 +24,4 @@ jmp $
 
 addBytes = (times 478 0x0)
 addBytes = 0x55,0xaa
-doSh = "qemu-system-x86_64 biosPrint.halm.bin"
+doSh = "qemu-system-x86_64 $filePath.bin"
