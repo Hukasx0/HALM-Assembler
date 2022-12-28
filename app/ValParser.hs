@@ -44,7 +44,8 @@ valToBin(Register a) |a=="al"=[0]
                      |a=="dh"=[6]
                      |a=="bh"=[7]
 
-valToBin(Int b) = [(read b::Word8)]
+valToBin(Int x)  = intToWord8List (read $ x)
+
 valToBin(Hex c) = [(fromIntegral $ getHexFromStr c)]
 valToBin(Ch d) = [(fromIntegral $ (fromEnum d))]
 valToBin(Str e) = map (\x -> fromIntegral $ fromEnum x) e
@@ -52,8 +53,9 @@ valToBin(Math operator a b) = mathInterpreter operator a b
 
 mathInterpreter :: String -> Value -> Value -> [Word8]
 mathInterpreter "times" (Int a) b = concat $ replicate (read a::Int) (valToBin $ b)
-mathInterpreter "+" a b = (+) <$> (valToBin $ a) <*> (valToBin $ b)
-mathInterpreter "-" a b = (-) <$> (valToBin $ a) <*> (valToBin $ b)
-mathInterpreter "*" a b = (*) <$> (valToBin $ a) <*> (valToBin $ b)
-mathInterpreter "/" a b = (div) <$> (valToBin $ a) <*> (valToBin $ b)
+mathInterpreter "times" (Math a c d) b = concat $ replicate (word8ListToInt $ valToBin $ (Math a c d)) (valToBin $ b)
+mathInterpreter "+" a b = valToBin $ Int <$> show  $ ( (word8ListToInt $ valToBin $ a) + (word8ListToInt $ valToBin $ b) )
+mathInterpreter "-" a b = valToBin $ Int <$> show $ ( (word8ListToInt $ valToBin $ a) - (word8ListToInt $ valToBin $ b) )
+mathInterpreter "*" a b = valToBin $ Int <$> show $ ( (word8ListToInt $ valToBin $ a) * (word8ListToInt $ valToBin $ b) ) 
+mathInterpreter "/" a b = valToBin $ Int <$> show $  ( (word8ListToInt $ valToBin $ a) `div` (word8ListToInt $ valToBin $ b) )
 mathInterpreter "++" a b = (valToBin $ a) ++ (valToBin $ b)

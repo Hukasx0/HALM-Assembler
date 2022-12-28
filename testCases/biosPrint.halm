@@ -1,27 +1,55 @@
--- Simple bios interrupt program that displays "HELLO"
+-- Simple bios interrupt program that displays "Hello World!"
 
 mov ah,0x0e
 mov al,'H'
 int 0x10
 
 mov ah,0x0e
-mov al,'E'
+mov al,'e'
 int 0x10
 
 mov ah,0x0e
-mov al,'L'
+mov al,'l'
 int 0x10
 
 mov ah,0x0e
-mov al,'L'
+mov al,'l'
 int 0x10
 
 mov ah,0x0e
-mov al,'O'
+mov al,'o'
+int 0x10
+
+mov ah,0x0e
+mov al,' '
+int 0x10
+
+mov ah,0x0e
+mov al,'W'
+int 0x10
+
+mov ah,0x0e
+mov al,'o'
+int 0x10
+
+mov ah,0x0e
+mov al,'r'
+int 0x10
+
+mov ah,0x0e
+mov al,'l'
+int 0x10
+
+mov ah,0x0e
+mov al,'d'
+int 0x10
+
+mov ah,0x0e
+mov al,'!'
 int 0x10
 
 jmp $
 
-addBytes = (times 478 0x0)
+addBytes = (times (- 508 (* 6 12) ) 0x0)
 addBytes = 0x55,0xaa
 doSh = "qemu-system-x86_64 $filePath.bin"
