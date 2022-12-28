@@ -10,6 +10,9 @@ import ValParser
 doShParser :: Parser Operation
 doShParser = DoSh <$> (string "doSh" >> spaces >> char '=' >> spaces >> pureStringParser)
 
+dispParser :: Parser Operation
+dispParser = Disp <$> (string "disp" >> many1 space >> anyValParser)
+
 lineCommentParser :: Parser Operation
 lineCommentParser = Comment <$> (string "--" >> many (noneOf "\n"))
 
@@ -18,4 +21,5 @@ commentParser = Comment <$> ( between (string "{-") (string "-}") (many (noneOf 
 
 insToIO :: Operation -> IO ()
 insToIO (DoSh command) = void $ system command
+insToIO (Disp val) = print (valToBin $ val)
 insToIO _ = pure ()
