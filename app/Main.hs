@@ -20,7 +20,7 @@ codeToIO code = mapM_ insToIO code
 finalParser :: Parser Operation
 finalParser = try movParser <|> try interruptParser <|> try incParser <|> try decParser 
               <|> try cmpParser <|> try jmpParser <|> try addByParser <|> try doShParser 
-              <|> try lineCommentParser <|>try commentParser <|> dispParser
+              <|> try lineCommentParser <|>try commentParser <|>try dispParser <|> dispAParser
 
 replaceStrings :: String -> String -> String
 replaceStrings input rep = T.unpack $ T.intercalate (T.pack rep) (T.splitOn (T.pack "$filePath") (T.pack $ input))
