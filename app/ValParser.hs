@@ -28,34 +28,40 @@ pureStringParser = between (char '"') (char '"') (many (noneOf "\""))
 mathParser :: Parser Value
 mathParser = Math <$> (char '(' >> spaces >> many1 (noneOf " \n\r")) <*> (many1 space >> onlyValParser) <*> (many1 space >> onlyValParser <* spaces <*  char ')')
 
+macroParser :: Parser Value
+macroParser = UseM <$> (char '\\' >> many1 letter)
+
 anyValParser :: Parser Value
-anyValParser = try registerParser <|> try hexParser <|> try intParser <|> try charParser <|> try stringParser <|> mathParser
+anyValParser = try registerParser <|> try hexParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|> macroParser 
 
 onlyValParser :: Parser Value
-onlyValParser = try hexParser <|> try intParser <|> try charParser <|> try stringParser <|> mathParser
+onlyValParser = try hexParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|> macroParser
 
-valToBin :: Value -> [Word8]
-valToBin(Register a) |a=="al"=[0]
-                     |a=="cl"=[1]
-                     |a=="dl"=[2]
-                     |a=="bl"=[3]
-                     |a=="ah"=[4]
-                     |a=="ch"=[5]
-                     |a=="dh"=[6]
-                     |a=="bh"=[7]
+valToBin :: Value -> MacroTable -> [Word8]
+valToBin(Register a) _ |a=="al"=[0]
+                       |a=="cl"=[1]
+                       |a=="dl"=[2]
+                       |a=="bl"=[3]
+                       |a=="ah"=[4]
+                       |a=="ch"=[5]
+                       |a=="dh"=[6]
+                       |a=="bh"=[7]
 
-valToBin(Int x)  = intToWord8List (read $ x)
+valToBin(Int x) _ = intToWord8List (read $ x)
 
-valToBin(Hex c) = [(fromIntegral $ getHexFromStr c)]
-valToBin(Ch d) = [(fromIntegral $ (fromEnum d))]
-valToBin(Str e) = map (\x -> fromIntegral $ fromEnum x) e
-valToBin(Math operator a b) = mathInterpreter operator a b
+valToBin(Hex c) _ = [(fromIntegral $ getHexFromStr c)]
+valToBin(Ch d) _ = [(fromIntegral $ (fromEnum d))]
+valToBin(Str e) _ = map (\x -> fromIntegral $ fromEnum x) e
+valToBin(Math operator a b) mT = mathInterpreter operator a b mT
+valToBin(UseM macro) mT = case  (lookup macro mT ) of
+                        Just value -> valToBin value mT
+                        Nothing -> error $ "This macro doesn't exist!"
 
-mathInterpreter :: String -> Value -> Value -> [Word8]
-mathInterpreter "times" (Int a) b = concat $ replicate (read a::Int) (valToBin $ b)
-mathInterpreter "times" (Math a c d) b = concat $ replicate (word8ListToInt $ valToBin $ (Math a c d)) (valToBin $ b)
-mathInterpreter "+" a b = valToBin $ Int <$> show  $ ( (word8ListToInt $ valToBin $ a) + (word8ListToInt $ valToBin $ b) )
-mathInterpreter "-" a b = valToBin $ Int <$> show $ ( (word8ListToInt $ valToBin $ a) - (word8ListToInt $ valToBin $ b) )
-mathInterpreter "*" a b = valToBin $ Int <$> show $ ( (word8ListToInt $ valToBin $ a) * (word8ListToInt $ valToBin $ b) ) 
-mathInterpreter "/" a b = valToBin $ Int <$> show $  ( (word8ListToInt $ valToBin $ a) `div` (word8ListToInt $ valToBin $ b) )
-mathInterpreter "++" a b = (valToBin $ a) ++ (valToBin $ b)
+mathInterpreter :: String -> Value -> Value -> MacroTable -> [Word8]
+mathInterpreter "times" (Math a c d) b mT= concat $ replicate (word8ListToInt $ (valToBin (Math a c d) mT)) (valToBin b mT)
+mathInterpreter "times" a b mT= concat $ replicate (word8ListToInt $ (valToBin a mT)) (valToBin b mT)
+mathInterpreter "+" a b mT= valToBin (Int <$> show  $ ( (word8ListToInt $ valToBin a mT) + (word8ListToInt $ valToBin b mT) ) ) mT
+mathInterpreter "-" a b mT= valToBin (Int <$> show $ ( (word8ListToInt $ valToBin a mT) - (word8ListToInt $ valToBin b mT) )) mT
+mathInterpreter "*" a b mT= valToBin (Int <$> show $ ( (word8ListToInt $ valToBin a mT) * (word8ListToInt $ valToBin b mT) )) mT
+mathInterpreter "/" a b mT= valToBin (Int <$> show $  ( (word8ListToInt $ valToBin a mT) `div` (word8ListToInt $ valToBin b mT) )) mT
+mathInterpreter "++" a b mT= (valToBin a mT) ++ (valToBin b mT)

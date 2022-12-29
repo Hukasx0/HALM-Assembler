@@ -22,8 +22,16 @@ lineCommentParser = Comment <$> (string "--" >> many (noneOf "\n"))
 commentParser :: Parser Operation
 commentParser = Comment <$> ( between (string "{-") (string "-}") (many (noneOf "-}")) )
 
-insToIO :: Operation -> IO ()
-insToIO (DoSh command) = void $ system command
-insToIO (DispA val) = print $ val
-insToIO (Disp val) = print (valToBin $ val)
-insToIO _ = pure ()
+defMacroParser :: Parser Operation
+defMacroParser = DefM <$> (string "def" >> many1 space >> many1 letter) <*> (spaces >> char '=' >> spaces >> anyValParser)
+
+insToIO :: Operation -> MacroTable -> IO ()
+insToIO (DoSh command) _ = void $ system command
+insToIO (DispA val) _= print $ val
+insToIO (Disp val) mT= print (valToBin val mT)
+insToIO _ _= pure ()
+
+macroTable :: Operation -> [(String,Value)]
+macroTable (DefM name val)= [(name,val)]
+macroTable _ =[]  
+
