@@ -31,7 +31,7 @@ main = do
           fileName <- head <$> getArgs
           fContent <- readFile $ fileName
           putStrLn $ ("input:\n") 
-          let content = replaceStrings fContent fileName
+          let content = libList ++ (replaceStrings fContent fileName)
           putStrLn $ content
           let parsed = parse (spaces >> many (finalParser <* many1 space) <* eof) fileName content
           putStrLn $ "output:"
@@ -40,7 +40,6 @@ main = do
             Right corr -> do
                           let mTable = (concat $ map macroTable corr)
                           let mlmTable = (concat $ map multiLineMacroTable corr)
-                          print $ mlmTable
                           putStrLn ("Writing binary to "++fileName++".bin")
                           B.writeFile (fileName++".bin") (B.pack $ concat $ (codeToIns corr mTable mlmTable))
                           print (concat $ (codeToIns corr mTable mlmTable))

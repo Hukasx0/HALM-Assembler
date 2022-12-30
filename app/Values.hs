@@ -33,3 +33,11 @@ intToWord8List x
 
 virtualFile :: String
 virtualFile = "addBytes = 0xff,123,0xA \nmov al,123\nmov bl,0xA\nmov dl,al\ninc al\ndec dl\ncmp al,123\nint 0x10\njmp test\n"
+
+helloLib :: String
+helloLib = (  "def hello = {mov ah,0x0e mov al,'H' int 0x10 mov ah,0x0e mov al,'e' int 0x10 mov ah,0x0e mov al,'l' int 0x10 mov ah,0x0e"
+                ++
+              "mov al,'l'int 0x10 mov ah,0x0e mov al,'o' int 0x10 jmp $ addBytes = (times (- 508 (* 6 5) ) 0x0) addBytes = 0x55,0xaa doSh = \"qemu-system-x86_64 $filePath.bin\"}\n" )
+
+libList :: String
+libList = helloLib
