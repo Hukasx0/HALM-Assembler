@@ -11,17 +11,17 @@ import Values
 import InsParser
 import HLParser
 
-codeToIns :: [Operation] -> MacroTable -> [[Word8]]
-codeToIns code macroT = map (\c -> insToBin c macroT) code
+codeToIns :: [Operation] -> MacroTable -> MLMacroTable -> [[Word8]]
+codeToIns code macroT mlm= map (\c -> insToBin c macroT mlm) code
 
-codeToIO :: [Operation] -> MacroTable -> IO ()
-codeToIO code macroT= mapM_ (\c -> insToIO c macroT) code
+codeToIO :: [Operation] -> MacroTable -> MLMacroTable -> IO ()
+codeToIO code macroT mlm= mapM_ (\c -> insToIO c macroT mlm) code
 
 finalParser :: Parser Operation
 finalParser = try movParser <|> try interruptParser <|> try incParser <|> try decParser 
               <|> try cmpParser <|> try jmpParser <|> try addByParser <|> try doShParser 
               <|> try lineCommentParser <|>try commentParser <|>try dispParser <|>try dispAParser
-              <|> defMacroParser
+              <|> try defMacroParser <|> try defMlMacroParser <|> useMLMParser
 
 replaceStrings :: String -> String -> String
 replaceStrings input rep = T.unpack $ T.intercalate (T.pack rep) (T.splitOn (T.pack "$filePath") (T.pack $ input))
@@ -39,8 +39,10 @@ main = do
             Left err -> print err
             Right corr -> do
                           let mTable = (concat $ map macroTable corr)
+                          let mlmTable = (concat $ map multiLineMacroTable corr)
+                          print $ mlmTable
                           putStrLn ("Writing binary to "++fileName++".bin")
-                          B.writeFile (fileName++".bin") (B.pack $ concat $ (codeToIns corr mTable))
-                          print (concat $ (codeToIns corr mTable))
-                          codeToIO corr mTable
+                          B.writeFile (fileName++".bin") (B.pack $ concat $ (codeToIns corr mTable mlmTable))
+                          print (concat $ (codeToIns corr mTable mlmTable))
+                          codeToIO corr mTable mlmTable
  

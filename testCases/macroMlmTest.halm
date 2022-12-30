@@ -1,0 +1,23 @@
+-- macro/mlm macro testing with empty binary output
+
+def a = 5
+def b = 10
+def zero = 0x0
+
+def displayTxt = {
+        Disp "$filePath"  
+        Disp "This is a instruction multi-line macro"
+}
+
+def c = (+ \a \b)
+
+def moreDispTests = {
+    disp \c
+    Disp (times \c \zero)
+    disp (times \c \zero)
+}
+
+
+use displayTxt
+
+use moreDispTests

@@ -28,13 +28,19 @@ cmpParser = Cmp <$>  (string "cmp" >> many1 space >> anyValParser) <*> (char ','
 addByParser :: Parser Operation
 addByParser = AdBy <$> (string "addBytes" >> spaces >> char '=' >> spaces >> (onlyValParser `sepBy` (char ',') ))
 
-insToBin :: Operation -> MacroTable -> [Word8]
-insToBin (Mov a b) mT= [176+(valToBin a mT)!!0]++(valToBin b mT)
-insToBin (Interrupt code) mT= [205]++[(valToBin code mT)!!0]
-insToBin (Inc reg) mT= [254]++[192+(valToBin reg mT)!!0]
-insToBin (Dec reg) mT= [254]++[200+(valToBin reg mT)!!0]
-insToBin (Cmp _ _) mT= [0,0]
-insToBin (Jmp "$") mT= [235,254]
-insToBin (Jmp _) mT= [235,0]
-insToBin (AdBy bytes) mT= concat $ map (\b -> valToBin b mT) bytes
-insToBin _ _= []
+useMLMParser :: Parser Operation
+useMLMParser = UseMLM <$> (string "use" >> many1 space >> many1 letter)
+
+insToBin :: Operation -> MacroTable -> MLMacroTable -> [Word8]
+insToBin (Mov a b) mT _= [176+(valToBin a mT)!!0]++(valToBin b mT)
+insToBin (Interrupt code) mT _= [205]++[(valToBin code mT)!!0]
+insToBin (Inc reg) mT _= [254]++[192+(valToBin reg mT)!!0]
+insToBin (Dec reg) mT _= [254]++[200+(valToBin reg mT)!!0]
+insToBin (Cmp _ _) _ _= [0,0]
+insToBin (Jmp "$") _ _= [235,254]
+insToBin (Jmp _) _ _= [235,0]
+insToBin (AdBy bytes) mT _= concat $ map (\b -> valToBin b mT) bytes
+insToBin (UseMLM name) mT mlmtable = case  (lookup name mlmtable ) of
+                        Just value -> concat $ (map (\operation -> insToBin operation mT mlmtable) value)
+                        Nothing -> error $ "This macro doesn't exist!"
+insToBin _ _ _= []
