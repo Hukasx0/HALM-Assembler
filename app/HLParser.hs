@@ -28,8 +28,10 @@ defMacroParser = DefM <$> (string "def" >> many1 space >> many1 letter) <*> (spa
 
 insParser :: Parser Operation
 insParser = (try movParser <* spaces) <|> (try interruptParser <* spaces) <|> (try incParser <* spaces) <|> (try decParser <* spaces) 
-              <|> (try cmpParser <* spaces) <|> (try jmpParser <* spaces) <|> (try addByParser <* spaces) <|> (try doShParser <* spaces) 
-              <|> (try lineCommentParser <* spaces) <|> (try commentParser <* spaces) <|> (try dispParser <* spaces) <|> (try dispAParser <* spaces)
+              <|> (try cmpParser <* spaces) <|> (try jmpParser <* spaces) <|> (try jeParser <* spaces) <|> (try jneParser <* spaces)
+              <|> (try jgParser <* spaces) <|> (try jgeParser <* spaces) <|> (try jlParser <* spaces) <|> (try jleParser <* spaces)
+              <|> (try addByParser <* spaces) <|> (try doShParser <* spaces) <|> (try lineCommentParser <* spaces) 
+              <|> (try commentParser <* spaces) <|> (try dispParser <* spaces) <|> (try dispAParser <* spaces)
 
 defMlMacroParser :: Parser Operation
 defMlMacroParser = DefMlM <$> (string "def" >> many1 space >> many1 letter) <*> (spaces >> char '=' >> spaces >> char '{' >> spaces >> many1 insParser <* spaces <* char '}')

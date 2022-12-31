@@ -12,6 +12,7 @@ data Value = Register String | Int String | Hex String | Ch Char | Str String | 
                 deriving(Eq,Show)
 
 data Operation = Mov Value Value | Interrupt Value | Inc Value | Dec Value | Cmp Value Value | Jmp Label 
+                | Je Label | Jne Label | Jg Label | Jge Label | Jl Label | Jle Label
                 | AdBy [Value] | DoSh String | Comment String | Disp Value | DispA Value | DefM String Value
                 | DefMlM String [Operation] | UseMLM String
                 deriving(Eq,Show)

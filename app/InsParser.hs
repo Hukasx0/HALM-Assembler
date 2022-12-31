@@ -22,6 +22,24 @@ decParser = Dec <$> (string "dec" >> many1 space >> registerParser)
 jmpParser :: Parser Operation
 jmpParser = Jmp <$> (string "jmp" >> many1 space >> many1 (noneOf " \n\r"))
 
+jeParser :: Parser Operation
+jeParser = Je <$> (string "je" >> many1 space >> many1 (noneOf " \n\r"))
+
+jneParser :: Parser Operation
+jneParser = Jne <$> (string "jne" >> many1 space >> many1 (noneOf " \n\r"))
+
+jgParser :: Parser Operation
+jgParser = Jg <$> (string "jg" >> many1 space >> many1 (noneOf " \n\r"))
+
+jgeParser :: Parser Operation
+jgeParser = Jge <$> (string "jge" >> many1 space >> many1 (noneOf " \n\r"))
+
+jlParser :: Parser Operation
+jlParser = Jl <$> (string "jl" >> many1 space >> many1 (noneOf " \n\r"))
+
+jleParser :: Parser Operation
+jleParser = Jle <$> (string "jle" >> many1 space >> many1 (noneOf " \n\r"))
+
 cmpParser :: Parser Operation
 cmpParser = Cmp <$>  (string "cmp" >> many1 space >> anyValParser) <*> (char ',' >> spaces >> anyValParser)
 
@@ -41,6 +59,12 @@ insToBin (Cmp (Register "al") b) mT _ = [60] ++ [(valToBin b mT)!!0]
 insToBin (Cmp a b) mT _ = [128]++[248+(valToBin a mT)!!0]++[(valToBin b mT)!!0]
 insToBin (Jmp "$") _ _= [235,254]
 insToBin (Jmp _) _ _= [235,0]
+insToBin (Je _) _ _=[116,0]
+insToBin (Jne _) _ _ =[117,0]
+insToBin (Jg _) _ _=[127,0]
+insToBin (Jle _) _ _=[126,0]
+insToBin (Jge _) _ _=[125,0]
+insToBin (Jl _) _ _=[124,0]
 insToBin (AdBy bytes) mT _= concat $ map (\b -> valToBin b mT) bytes
 insToBin (UseMLM name) mT mlmtable = case  (lookup name mlmtable ) of
                         Just value -> concat $ (map (\operation -> insToBin operation mT mlmtable) value)

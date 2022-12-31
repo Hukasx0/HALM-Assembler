@@ -19,8 +19,10 @@ codeToIO code macroT mlm= mapM_ (\c -> insToIO c macroT mlm) code
 
 finalParser :: Parser Operation
 finalParser = try movParser <|> try interruptParser <|> try incParser <|> try decParser 
-              <|> try cmpParser <|> try jmpParser <|> try addByParser <|> try doShParser 
-              <|> try lineCommentParser <|>try commentParser <|>try dispParser <|>try dispAParser
+              <|> try cmpParser <|> try jmpParser <|> try jeParser <|> try jneParser 
+              <|> try jgParser <|> try jgeParser <|> try jlParser <|> try jleParser
+              <|> try addByParser <|> try doShParser <|> try lineCommentParser 
+              <|> try commentParser <|>try dispParser <|>try dispAParser
               <|> try defMacroParser <|> try defMlMacroParser <|> useMLMParser
 
 replaceStrings :: String -> String -> String
