@@ -24,7 +24,7 @@ commentParser :: Parser Operation
 commentParser = Comment <$> ( between (string "{-") (string "-}") (many (noneOf "-}")) )
 
 defMacroParser :: Parser Operation
-defMacroParser = DefM <$> (string "def" >> many1 space >> many1 letter) <*> (spaces >> char '=' >> spaces >> anyValParser)
+defMacroParser = DefM <$> (string "def" >> many1 space >> many1 letter) <*> (spaces >> char '=' >> spaces >> onlyValParser)
 
 insParser :: Parser Operation
 insParser = (try movParser <* spaces) <|> (try interruptParser <* spaces) <|> (try incParser <* spaces) <|> (try decParser <* spaces) 
