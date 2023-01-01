@@ -16,6 +16,12 @@ intParser = Int <$> (many1 digit)
 hexParser :: Parser Value
 hexParser = Hex <$> (string "0x" >> many1 hexDigit)
 
+octParser :: Parser Value
+octParser = Oct <$> (string "0o" >> many1 octDigit)
+
+binParser :: Parser Value
+binParser = Bin <$> (string "0b" >> (many1 $ oneOf "01"))
+
 charParser :: Parser Value
 charParser = Ch <$> ( between (char '\'') (char '\'') (anyChar) )
 
@@ -32,10 +38,10 @@ macroParser :: Parser Value
 macroParser = UseM <$> (char '\\' >> many1 letter)
 
 anyValParser :: Parser Value
-anyValParser = try registerParser <|> try hexParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|> macroParser 
+anyValParser = try registerParser <|> try hexParser <|> try octParser <|> try binParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|> macroParser 
 
 onlyValParser :: Parser Value
-onlyValParser = try hexParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|> macroParser
+onlyValParser = try hexParser <|> try intParser <|> try octParser <|> try binParser <|> try charParser <|> try stringParser <|> try mathParser <|> macroParser
 
 valToBin :: Value -> MacroTable -> [Word8]
 valToBin(Register a) _ |a=="al"=[0]
@@ -48,8 +54,9 @@ valToBin(Register a) _ |a=="al"=[0]
                        |a=="bh"=[7]
 
 valToBin(Int x) _ = intToWord8List (read $ x)
-
-valToBin(Hex c) _ = [(fromIntegral $ getHexFromStr c)]
+valToBin(Hex c) _ = intToWord8List $ getHexFromStr $ c
+valToBin(Oct x) _= intToWord8List $ getOctFromStr x 
+valToBin(Bin x) _ =  intToWord8List $ getBinFromStr $ x
 valToBin(Ch d) _ = [(fromIntegral $ (fromEnum d))]
 valToBin(Str e) _ = map (\x -> fromIntegral $ fromEnum x) e
 valToBin(Math operator a b) mT = mathInterpreter operator a b mT

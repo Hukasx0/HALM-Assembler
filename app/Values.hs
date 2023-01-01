@@ -1,14 +1,15 @@
 module Values where
 
 import Text.Parsec
-import Numeric (readHex)
+import Numeric (readHex, readOct)
 import Data.Word
 
 type Label = String
 type MacroTable = [(String,Value)]
 type MLMacroTable = [(String,[Operation])]
 
-data Value = Register String | Int String | Hex String | Ch Char | Str String | Math String Value Value | UseM String
+data Value = Register String | Int String | Hex String | Oct String | Bin String | Ch Char | Str String 
+             | Math String Value Value | UseM String
                 deriving(Eq,Show)
 
 data Operation = Mov Value Value | Interrupt Value | Inc Value | Dec Value | Cmp Value Value | Jmp Label 
@@ -22,6 +23,12 @@ letterDigitParser = oneOf ['0'..'9'] <|> oneOf ['a'..'z'] <|> oneOf ['A'..'Z']
 
 getHexFromStr :: String -> Int
 getHexFromStr str = fst $ head $ readHex str
+
+getOctFromStr :: String -> Int
+getOctFromStr str = fst $ head $ readOct str
+
+getBinFromStr :: String -> Int
+getBinFromStr str = sum [2 ^ p | (c, p) <- zip (reverse str) [0..], c == '1']
 
 word8ListToInt :: [Word8] -> Int
 word8ListToInt w8s = sum $ zipWith (*) (map fromIntegral w8s) (iterate (*256) 1)
