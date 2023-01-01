@@ -23,7 +23,8 @@ finalParser = try movParser <|> try interruptParser <|> try incParser <|> try de
               <|> try jgParser <|> try jgeParser <|> try jlParser <|> try jleParser
               <|> try addByParser <|> try doShParser <|> try lineCommentParser 
               <|> try commentParser <|>try dispParser <|>try dispAParser
-              <|> try defMacroParser <|> try defMlMacroParser <|> useMLMParser
+              <|> try showVParser <|> try defMacroParser <|> try defMlMacroParser 
+              <|> useMLMParser
 
 replaceStrings :: String -> String -> String
 replaceStrings input rep = T.unpack $ T.intercalate (T.pack rep) (T.splitOn (T.pack "$filePath") (T.pack $ input))
