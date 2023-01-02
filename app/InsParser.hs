@@ -49,24 +49,38 @@ addByParser = AdBy <$> (string "addBytes" >> spaces >> char '=' >> spaces >> (on
 useMLMParser :: Parser Operation
 useMLMParser = UseMLM <$> (string "use" >> many1 space >> many1 letter)
 
-insToBin :: Operation -> MacroTable -> MLMacroTable -> [Word8]
-insToBin (Mov a b) mT _= [176+(valToBin a mT)!!0]++(valToBin b mT)
-insToBin (Interrupt code) mT _= [205]++[(valToBin code mT)!!0]
-insToBin (Inc reg) mT _= [254]++[192+(valToBin reg mT)!!0]
-insToBin (Dec reg) mT _= [254]++[200+(valToBin reg mT)!!0]
-insToBin (Cmp (Register a) (Register b)) mT _ = [56] ++ [192+ (8* (valToBin (Register b) mT)!!0) +(valToBin (Register a) mT)!!0]
-insToBin (Cmp (Register "al") b) mT _ = [60] ++ [(valToBin b mT)!!0]
-insToBin (Cmp a b) mT _ = [128]++[248+(valToBin a mT)!!0]++[(valToBin b mT)!!0]
-insToBin (Jmp "$") _ _= [235,254]
-insToBin (Jmp _) _ _= [235,0]
-insToBin (Je _) _ _=[116,0]
-insToBin (Jne _) _ _ =[117,0]
-insToBin (Jg _) _ _=[127,0]
-insToBin (Jle _) _ _=[126,0]
-insToBin (Jge _) _ _=[125,0]
-insToBin (Jl _) _ _=[124,0]
-insToBin (AdBy bytes) mT _= concat $ map (\b -> valToBin b mT) bytes
-insToBin (UseMLM name) mT mlmtable = case  (lookup name mlmtable ) of
-                        Just value -> concat $ (map (\operation -> insToBin operation mT mlmtable) value)
+fillBytesParser :: Parser Operation
+fillBytesParser = FillB <$> (string "fillBytes" >> many1 space >> onlyValParser) <*> (many1 space >> onlyValParser)
+
+getCurrBytes :: Operation -> MacroTable -> MLMacroTable -> (String,Int)
+getCurrBytes (FillB _ _) mt mlm = ("fillB",0)
+getCurrBytes op mt mlm = ("code",(length $ (insToBin op mt mlm [])))
+
+sumList :: [(String, Int)] -> [Int]
+sumList xs = snd $ foldl f (0, []) xs
+  where
+    f (acc, res) ("code", x) = (acc + x, res)
+    f (acc, res) (_, _) = (acc, acc:res)
+
+insToBin :: Operation -> MacroTable -> MLMacroTable -> [Int] -> [Word8]
+insToBin (Mov a b) mT _ _= [176+(valToBin a mT)!!0]++(valToBin b mT)
+insToBin (Interrupt code) mT _ _= [205]++[(valToBin code mT)!!0]
+insToBin (Inc reg) mT _ _= [254]++[192+(valToBin reg mT)!!0]
+insToBin (Dec reg) mT _ _= [254]++[200+(valToBin reg mT)!!0]
+insToBin (Cmp (Register a) (Register b)) mT _ _= [56] ++ [192+ (8* (valToBin (Register b) mT)!!0) +(valToBin (Register a) mT)!!0]
+insToBin (Cmp (Register "al") b) mT _ _= [60] ++ [(valToBin b mT)!!0]
+insToBin (Cmp a b) mT _ _= [128]++[248+(valToBin a mT)!!0]++[(valToBin b mT)!!0]
+insToBin (Jmp "$") _ _ _= [235,254]
+insToBin (Jmp _) _ _ _= [235,0]
+insToBin (Je _) _ _ _=[116,0]
+insToBin (Jne _) _ _ _=[117,0]
+insToBin (Jg _) _ _ _=[127,0]
+insToBin (Jle _) _ _ _=[126,0]
+insToBin (Jge _) _ _ _=[125,0]
+insToBin (Jl _) _ _ _=[124,0]
+insToBin (AdBy bytes) mT _ _= concat $ map (\b -> valToBin b mT) bytes
+insToBin (UseMLM name) mT mlmtable bytes= case  (lookup name mlmtable ) of
+                        Just value -> concat $ (map (\operation -> insToBin operation mT mlmtable bytes) value)
                         Nothing -> error $ "This macro doesn't exist!"
-insToBin _ _ _= []
+insToBin (FillB times byte) mT _ bytes = concat $ replicate ((word8ListToInt $ (valToBin times mT))-(head $ bytes)) (valToBin byte mT)  
+insToBin _ _ _ _= []

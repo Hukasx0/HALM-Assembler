@@ -50,6 +50,6 @@ int 0x10
 
 jmp $
 
-addBytes = (times (- 508 (* 6 12) ) 0x0)
+fillBytes (- 512 2) 0x0
 addBytes = 0x55,0xaa
 doSh = "qemu-system-x86_64 $filePath.bin"

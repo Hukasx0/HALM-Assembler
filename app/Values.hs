@@ -16,6 +16,7 @@ data Operation = Mov Value Value | Interrupt Value | Inc Value | Dec Value | Cmp
                 | Je Label | Jne Label | Jg Label | Jge Label | Jl Label | Jle Label
                 | AdBy [Value] | DoSh String | Comment String | Disp Value | DispA Value 
                 | ShowV Value | DefM String Value | DefMlM String [Operation] | UseMLM String
+                | FillB Value Value
                 deriving(Eq,Show)
 
 letterDigitParser :: Parsec String () Char
@@ -39,13 +40,10 @@ intToWord8List x
   | x <= 255  = [fromIntegral x]
   | otherwise = fromIntegral (x `mod` 256) : intToWord8List (x `div` 256)
 
-virtualFile :: String
-virtualFile = "addBytes = 0xff,123,0xA \nmov al,123\nmov bl,0xA\nmov dl,al\ninc al\ndec dl\ncmp al,123\nint 0x10\njmp test\n"
-
 helloLib :: String
 helloLib = (  "def hello = {mov ah,0x0e mov al,'H' int 0x10 mov ah,0x0e mov al,'e' int 0x10 mov ah,0x0e mov al,'l' int 0x10 mov ah,0x0e"
                 ++
               "mov al,'l'int 0x10 mov ah,0x0e mov al,'o' int 0x10 jmp $ addBytes = (times (- 508 (* 6 5) ) 0x0) addBytes = 0x55,0xaa doSh = \"qemu-system-x86_64 $filePath.bin\"}\n" )
 
 libList :: String
-libList = helloLib
+libList = ""--helloLib
