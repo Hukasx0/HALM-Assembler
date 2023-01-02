@@ -11,8 +11,8 @@ import Values
 import InsParser
 import HLParser
 
-codeToIns :: [Operation] -> MacroTable -> MLMacroTable -> [Int] -> [[Word8]]
-codeToIns code macroT mlm bytes= map (\c -> insToBin c macroT mlm bytes) code
+codeToIns :: [Operation] -> MacroTable -> MLMacroTable -> [[Word8]]
+codeToIns code macroT mlm= map (\c -> insToBin c macroT mlm) code
 
 codeToIO :: [Operation] -> MacroTable -> MLMacroTable -> IO ()
 codeToIO code macroT mlm= mapM_ (\c -> insToIO c macroT mlm) code
@@ -43,9 +43,9 @@ main = do
             Right corr -> do
                           let mTable = (concat $ map macroTable corr)
                           let mlmTable = (concat $ map multiLineMacroTable corr)
-                          let fillB = reverse $ sumList $ (map (\op -> getCurrBytes op mTable mlmTable) corr)
+                          let fillBDone = map (\c -> fillBFilter c (reverse $ sumList $ (map (\op -> getCurrBytes op mTable mlmTable) corr))) corr
                           putStrLn ("Writing binary to "++fileName++".bin")
-                          B.writeFile (fileName++".bin") (B.pack $ concat $ (codeToIns corr mTable mlmTable fillB))
-                          print (concat $ (codeToIns corr mTable mlmTable fillB))
+                          B.writeFile (fileName++".bin") (B.pack $ concat $ (codeToIns fillBDone mTable mlmTable))
+                          print (concat $ (codeToIns fillBDone mTable mlmTable))
                           codeToIO corr mTable mlmTable
  
