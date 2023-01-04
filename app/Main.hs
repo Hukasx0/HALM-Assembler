@@ -24,7 +24,8 @@ finalParser = try movParser <|> try interruptParser <|> try incParser <|> try de
               <|> try addByParser <|> try doShParser <|> try lineCommentParser 
               <|> try commentParser <|>try dispParser <|>try dispAParser
               <|> try showVParser <|> try defMacroParser <|> try defMlMacroParser 
-              <|> try useMLMParser <|> fillBytesParser
+              <|> try useMLMParser <|> try fillBytesParser <|> try addParser 
+              <|> try subParser <|> try negParser <|> xorParser
 
 replaceStrings :: String -> String -> String
 replaceStrings input rep = T.unpack $ T.intercalate (T.pack rep) (T.splitOn (T.pack "$filePath") (T.pack $ input))
@@ -48,4 +49,3 @@ main = do
                           B.writeFile (fileName++".bin") (B.pack $ concat $ (codeToIns fillBDone mTable mlmTable))
                           print (concat $ (codeToIns fillBDone mTable mlmTable))
                           codeToIO corr mTable mlmTable
- 

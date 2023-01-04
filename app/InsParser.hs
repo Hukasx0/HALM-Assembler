@@ -40,6 +40,18 @@ jlParser = Jl <$> (string "jl" >> many1 space >> many1 (noneOf " \n\r"))
 jleParser :: Parser Operation
 jleParser = Jle <$> (string "jle" >> many1 space >> many1 (noneOf " \n\r"))
 
+addParser :: Parser Operation
+addParser = Add <$> (string "add" >> many1 space >> registerParser) <*> (char ',' >> spaces >> anyValParser)
+
+subParser :: Parser Operation
+subParser = Sub <$> (string "sub" >> many1 space >> registerParser) <*> (char ',' >> spaces >> anyValParser)
+
+negParser :: Parser Operation
+negParser = Neg <$> (string "neg" >> many1 space >> registerParser)
+
+xorParser :: Parser Operation
+xorParser = Xor <$> (string "xor" >> many1 space >> registerParser) <*> (char ',' >> spaces >> anyValParser)
+
 cmpParser :: Parser Operation
 cmpParser = Cmp <$>  (string "cmp" >> many1 space >> anyValParser) <*> (char ',' >> spaces >> anyValParser)
 
@@ -82,6 +94,16 @@ insToBin (Jg _) _ _=[127,0]
 insToBin (Jle _) _ _=[126,0]
 insToBin (Jge _) _ _=[125,0]
 insToBin (Jl _) _ _=[124,0]
+insToBin (Add (Register a) (Register b)) mT _= [00] ++ [192+(8* (valToBin (Register b) mT)!!0)+(valToBin (Register a) mT)!!0]
+insToBin (Add (Register "al") b) mT _= [04]++(valToBin b mT)
+insToBin (Add a b) mT _= [128]++[192+(valToBin a mT)!!0]++(valToBin b mT)
+insToBin (Sub (Register a) (Register b)) mT _= [40]++[192+(8* (valToBin (Register b) mT)!!0)+(valToBin (Register a) mT)!!0]
+insToBin (Sub (Register "al") b) mT _= [44]++(valToBin b mT)
+insToBin (Sub a b) mT _= [128]++[232+(valToBin a mT)!!0]++(valToBin b mT)
+insToBin (Neg a) mT _=[246]++[216+(valToBin a mT)!!0]
+insToBin (Xor (Register a) (Register b)) mT _= [48]++[192+(8* (valToBin (Register b) mT)!!0)+(valToBin (Register a) mT)!!0]
+insToBin (Xor (Register "al") b) mT _=[52]++(valToBin b mT)
+insToBin (Xor a b) mT _= [128]++[240+(valToBin a mT)!!0]++(valToBin b mT)
 insToBin (AdBy bytes) mT _= concat $ map (\b -> valToBin b mT) bytes
 insToBin (UseMLM name) mT mlmtable= case  (lookup name mlmtable ) of
                         Just value -> concat $ (map (\operation -> insToBin operation mT mlmtable) value)
