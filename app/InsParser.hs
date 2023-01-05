@@ -20,25 +20,25 @@ decParser :: Parser Operation
 decParser = Dec <$> (string "dec" >> many1 space >> registerParser)
 
 jmpParser :: Parser Operation
-jmpParser = Jmp <$> (string "jmp" >> many1 space >> many1 (noneOf " \n\r"))
+jmpParser = Jmp <$> (string "jmp" >> many1 space >> many1 (noneOf " \n\r")) <*> (pure 0)
 
 jeParser :: Parser Operation
-jeParser = Je <$> (string "je" >> many1 space >> many1 (noneOf " \n\r"))
+jeParser = Je <$> (string "je" >> many1 space >> many1 (noneOf " \n\r")) <*> (pure 0)
 
 jneParser :: Parser Operation
-jneParser = Jne <$> (string "jne" >> many1 space >> many1 (noneOf " \n\r"))
+jneParser = Jne <$> (string "jne" >> many1 space >> many1 (noneOf " \n\r")) <*> (pure 0)
 
 jgParser :: Parser Operation
-jgParser = Jg <$> (string "jg" >> many1 space >> many1 (noneOf " \n\r"))
+jgParser = Jg <$> (string "jg" >> many1 space >> many1 (noneOf " \n\r")) <*> (pure 0)
 
 jgeParser :: Parser Operation
-jgeParser = Jge <$> (string "jge" >> many1 space >> many1 (noneOf " \n\r"))
+jgeParser = Jge <$> (string "jge" >> many1 space >> many1 (noneOf " \n\r")) <*> (pure 0)
 
 jlParser :: Parser Operation
-jlParser = Jl <$> (string "jl" >> many1 space >> many1 (noneOf " \n\r"))
+jlParser = Jl <$> (string "jl" >> many1 space >> many1 (noneOf " \n\r")) <*> (pure 0)
 
 jleParser :: Parser Operation
-jleParser = Jle <$> (string "jle" >> many1 space >> many1 (noneOf " \n\r"))
+jleParser = Jle <$> (string "jle" >> many1 space >> many1 (noneOf " \n\r")) <*> (pure 0)
 
 addParser :: Parser Operation
 addParser = Add <$> (string "add" >> many1 space >> registerParser) <*> (char ',' >> spaces >> anyValParser)
@@ -55,6 +55,9 @@ xorParser = Xor <$> (string "xor" >> many1 space >> registerParser) <*> (char ',
 cmpParser :: Parser Operation
 cmpParser = Cmp <$>  (string "cmp" >> many1 space >> anyValParser) <*> (char ',' >> spaces >> anyValParser)
 
+defLabelParser :: Parser Operation
+defLabelParser = DefLabel <$> (string "label" >> many1 space >> many1 letter)
+
 addByParser :: Parser Operation
 addByParser = AdBy <$> (string "addBytes" >> spaces >> char '=' >> spaces >> (onlyValParser `sepBy` (char ',') ))
 
@@ -66,7 +69,9 @@ fillBytesParser = FillB <$> (string "fillBytes" >> many1 space >> onlyValParser)
 
 getCurrBytes :: Operation -> MacroTable -> MLMacroTable -> (String,Int)
 getCurrBytes (FillB _ _) _ _ = ("fillB",0)
-getCurrBytes op mt mlm = ("code",(length $ (insToBin op mt mlm)))
+getCurrBytes (DefLabel _) _ _ = ("defL",0)
+getCurrBytes (Jmp _ _) _ _ = ("jump",0)
+getCurrBytes op mt mlm = ("code",(length $ (insToBin op mt mlm [("",0)])))
 
 sumList :: [(String, Int)] -> [Int]
 sumList xs = snd $ foldl f (0, []) xs
@@ -76,40 +81,85 @@ sumList xs = snd $ foldl f (0, []) xs
 
 byteFilter :: Operation -> [Operation]
 byteFilter (FillB a b) = [(FillB a b)]
+byteFilter (Jmp a b) = [(Jmp a b)]
+byteFilter (DefLabel dLabel) = [(DefLabel dLabel)]
 byteFilter _ = []
+
+getLabelTable :: (Operation,Int) -> [(String,Int)]
+getLabelTable ((DefLabel dLabel),addr) = [(dLabel,addr)]
+getLabelTable _ = []
 
 fillBFilter :: (Operation,Int) -> Operation
 fillBFilter ((FillB times byte),bytesCtr) = (AdBy [(Math "times" (Math "-" (times) (Int (show $ bytesCtr) ) ) (byte) )])
+fillBFilter ((Jmp lbl _),bytesCtr) = ((Jmp lbl bytesCtr))
 fillBFilter (rest,_) = rest
 
-insToBin :: Operation -> MacroTable -> MLMacroTable -> [Word8]
-insToBin (Mov a b) mT _= [176+(valToBin a mT)!!0]++(valToBin b mT)
-insToBin (Interrupt code) mT _= [205]++[(valToBin code mT)!!0]
-insToBin (Inc reg) mT _= [254]++[192+(valToBin reg mT)!!0]
-insToBin (Dec reg) mT _= [254]++[200+(valToBin reg mT)!!0]
-insToBin (Cmp (Register a) (Register b)) mT _= [56] ++ [192+ (8* (valToBin (Register b) mT)!!0) +(valToBin (Register a) mT)!!0]
-insToBin (Cmp (Register "al") b) mT _= [60] ++ [(valToBin b mT)!!0]
-insToBin (Cmp a b) mT _= [128]++[248+(valToBin a mT)!!0]++[(valToBin b mT)!!0]
-insToBin (Jmp "$") _ _= [235,254]
-insToBin (Jmp _) _ _= [235,0]
-insToBin (Je _) _ _=[116,0]
-insToBin (Jne _) _ _=[117,0]
-insToBin (Jg _) _ _=[127,0]
-insToBin (Jle _) _ _=[126,0]
-insToBin (Jge _) _ _=[125,0]
-insToBin (Jl _) _ _=[124,0]
-insToBin (Add (Register a) (Register b)) mT _= [00] ++ [192+(8* (valToBin (Register b) mT)!!0)+(valToBin (Register a) mT)!!0]
-insToBin (Add (Register "al") b) mT _= [04]++(valToBin b mT)
-insToBin (Add a b) mT _= [128]++[192+(valToBin a mT)!!0]++(valToBin b mT)
-insToBin (Sub (Register a) (Register b)) mT _= [40]++[192+(8* (valToBin (Register b) mT)!!0)+(valToBin (Register a) mT)!!0]
-insToBin (Sub (Register "al") b) mT _= [44]++(valToBin b mT)
-insToBin (Sub a b) mT _= [128]++[232+(valToBin a mT)!!0]++(valToBin b mT)
-insToBin (Neg a) mT _=[246]++[216+(valToBin a mT)!!0]
-insToBin (Xor (Register a) (Register b)) mT _= [48]++[192+(8* (valToBin (Register b) mT)!!0)+(valToBin (Register a) mT)!!0]
-insToBin (Xor (Register "al") b) mT _=[52]++(valToBin b mT)
-insToBin (Xor a b) mT _= [128]++[240+(valToBin a mT)!!0]++(valToBin b mT)
-insToBin (AdBy bytes) mT _= concat $ map (\b -> valToBin b mT) bytes
-insToBin (UseMLM name) mT mlmtable= case  (lookup name mlmtable ) of
-                        Just value -> concat $ (map (\operation -> insToBin operation mT mlmtable) value)
+clearData :: Operation -> [Operation]
+clearData (DefLabel _) = []
+clearData rest = [rest]
+
+replaceValues :: [Operation] -> [Operation] -> [Operation]
+replaceValues ops news = go ops news
+  where
+    go [] _ = []
+    go (op:ops) news =
+      if isJmp op || isFillB op
+      then head news : go ops (tail news)
+      else op : go ops news
+    isJmp (Jmp _ _) = True
+    isJmp _          = False
+    isFillB (FillB _ _) = True
+    isFillB _            = False
+
+insToBin :: Operation -> MacroTable -> MLMacroTable -> LabelTable -> [Word8]
+insToBin (Mov a b) mT _ _= [176+(valToBin a mT)!!0]++(valToBin b mT)
+insToBin (Interrupt code) mT _ _= [205]++[(valToBin code mT)!!0]
+insToBin (Inc reg) mT _ _= [254]++[192+(valToBin reg mT)!!0]
+insToBin (Dec reg) mT _ _= [254]++[200+(valToBin reg mT)!!0]
+insToBin (Cmp (Register a) (Register b)) mT _ _= [56] ++ [192+ (8* (valToBin (Register b) mT)!!0) +(valToBin (Register a) mT)!!0]
+insToBin (Cmp (Register "al") b) mT _ _= [60] ++ [(valToBin b mT)!!0]
+insToBin (Cmp a b) mT _ _= [128]++[248+(valToBin a mT)!!0]++[(valToBin b mT)!!0]
+insToBin (Jmp "$" _) _ _ _= [235,254]
+insToBin (Jmp lbl addr) _ _ labelTbl= case  (lookup lbl labelTbl ) of
+                        Just value -> if (value>addr) then [235]++(intToWord8List $ (value-addr))
+                                      else [235]++[254-(intToWord8List $ addr)!!0]
+                        Nothing -> error $ "This label doesn't exist!"
+insToBin (Je lbl addr) _ _ labelTbl= case  (lookup lbl labelTbl ) of
+                        Just value -> if (value>addr) then [116]++(intToWord8List $ (value-addr))
+                                      else [116]++[254-(intToWord8List $ addr)!!0]
+                        Nothing -> error $ "This label doesn't exist!"
+insToBin (Jne lbl addr) _ _ labelTbl= case  (lookup lbl labelTbl ) of
+                        Just value -> if (value>addr) then [117]++(intToWord8List $ (value-addr))
+                                      else [117]++[254-(intToWord8List $ addr)!!0]
+                        Nothing -> error $ "This label doesn't exist!"
+insToBin (Jg lbl addr) _ _ labelTbl= case  (lookup lbl labelTbl ) of
+                        Just value -> if (value>addr) then [127]++(intToWord8List $ (value-addr))
+                                      else [127]++[254-(intToWord8List $ addr)!!0]
+                        Nothing -> error $ "This label doesn't exist!"
+insToBin (Jle lbl addr) _ _ labelTbl= case  (lookup lbl labelTbl ) of
+                        Just value -> if (value>addr) then [126]++(intToWord8List $ (value-addr))
+                                      else [126]++[254-(intToWord8List $ addr)!!0]
+                        Nothing -> error $ "This label doesn't exist!"
+insToBin (Jge lbl addr) _ _ labelTbl= case  (lookup lbl labelTbl ) of
+                        Just value -> if (value>addr) then [125]++(intToWord8List $ (value-addr))
+                                      else [125]++[254-(intToWord8List $ addr)!!0]
+                        Nothing -> error $ "This label doesn't exist!"
+insToBin (Jl lbl addr) _ _ labelTbl= case  (lookup lbl labelTbl ) of
+                        Just value -> if (value>addr) then [124]++(intToWord8List $ (value-addr))
+                                      else [124]++[254-(intToWord8List $ addr)!!0]
+                        Nothing -> error $ "This label doesn't exist!"
+insToBin (Add (Register a) (Register b)) mT _ _= [00] ++ [192+(8* (valToBin (Register b) mT)!!0)+(valToBin (Register a) mT)!!0]
+insToBin (Add (Register "al") b) mT _ _= [04]++(valToBin b mT)
+insToBin (Add a b) mT _ _= [128]++[192+(valToBin a mT)!!0]++(valToBin b mT)
+insToBin (Sub (Register a) (Register b)) mT _ _= [40]++[192+(8* (valToBin (Register b) mT)!!0)+(valToBin (Register a) mT)!!0]
+insToBin (Sub (Register "al") b) mT _ _= [44]++(valToBin b mT)
+insToBin (Sub a b) mT _ _= [128]++[232+(valToBin a mT)!!0]++(valToBin b mT)
+insToBin (Neg a) mT _ _=[246]++[216+(valToBin a mT)!!0]
+insToBin (Xor (Register a) (Register b)) mT _ _= [48]++[192+(8* (valToBin (Register b) mT)!!0)+(valToBin (Register a) mT)!!0]
+insToBin (Xor (Register "al") b) mT _ _=[52]++(valToBin b mT)
+insToBin (Xor a b) mT _ _= [128]++[240+(valToBin a mT)!!0]++(valToBin b mT)
+insToBin (AdBy bytes) mT _ _= concat $ map (\b -> valToBin b mT) bytes
+insToBin (UseMLM name) mT mlmtable labelTbl= case  (lookup name mlmtable ) of
+                        Just value -> concat $ (map (\operation -> insToBin operation mT mlmtable labelTbl) value)
                         Nothing -> error $ "This macro doesn't exist!"
-insToBin _ _ _= []
+insToBin _ _ _ _= []

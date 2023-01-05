@@ -7,16 +7,18 @@ import Data.Word
 type Label = String
 type MacroTable = [(String,Value)]
 type MLMacroTable = [(String,[Operation])]
+type LabelTable = [(String,Int)]
 
 data Value = Register String | Int String | Hex String | Oct String | Bin String | Ch Char | Str String 
              | Math String Value Value | UseM String
                 deriving(Eq,Show)
 
-data Operation = Mov Value Value | Interrupt Value | Inc Value | Dec Value | Cmp Value Value | Jmp Label 
-                | Je Label | Jne Label | Jg Label | Jge Label | Jl Label | Jle Label
+data Operation = Mov Value Value | Interrupt Value | Inc Value | Dec Value | Cmp Value Value | Jmp Label Int 
+                | Je Label Int | Jne Label Int | Jg Label Int | Jge Label Int | Jl Label Int | Jle Label Int
                 | AdBy [Value] | DoSh String | Comment String | Disp Value | DispA Value 
                 | ShowV Value | DefM String Value | DefMlM String [Operation] | UseMLM String
                 | FillB Value Value | Add Value Value | Sub Value Value | Neg Value | Xor Value Value
+                | DefLabel String
                 deriving(Eq,Show)
 
 letterDigitParser :: Parsec String () Char
