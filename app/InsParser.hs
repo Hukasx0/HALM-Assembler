@@ -71,6 +71,12 @@ getCurrBytes :: Operation -> MacroTable -> MLMacroTable -> (String,Int)
 getCurrBytes (FillB _ _) _ _ = ("fillB",0)
 getCurrBytes (DefLabel _) _ _ = ("defL",0)
 getCurrBytes (Jmp _ _) _ _ = ("jump",0)
+getCurrBytes (Je _ _) _ _ = ("jump",0)
+getCurrBytes (Jne _ _) _ _ = ("jump",0)
+getCurrBytes (Jg _ _) _ _ = ("jump",0)
+getCurrBytes (Jle _ _) _ _ = ("jump",0)
+getCurrBytes (Jge _ _) _ _ = ("jump",0)
+getCurrBytes (Jl _ _) _ _ = ("jump",0)
 getCurrBytes op mt mlm = ("code",(length $ (insToBin op mt mlm [("",0)])))
 
 sumList :: [(String, Int)] -> [Int]
@@ -82,6 +88,12 @@ sumList xs = snd $ foldl f (0, []) xs
 byteFilter :: Operation -> [Operation]
 byteFilter (FillB a b) = [(FillB a b)]
 byteFilter (Jmp a b) = [(Jmp a b)]
+byteFilter (Je a b) = [(Je a b)]
+byteFilter (Jne a b) = [(Jne a b)]
+byteFilter (Jg a b) = [(Jg a b)]
+byteFilter (Jle a b) = [(Jle a b)]
+byteFilter (Jge a b) = [(Jge a b)]
+byteFilter (Jl a b) = [(Jl a b)]
 byteFilter (DefLabel dLabel) = [(DefLabel dLabel)]
 byteFilter _ = []
 
@@ -92,6 +104,12 @@ getLabelTable _ = []
 fillBFilter :: (Operation,Int) -> Operation
 fillBFilter ((FillB times byte),bytesCtr) = (AdBy [(Math "times" (Math "-" (times) (Int (show $ bytesCtr) ) ) (byte) )])
 fillBFilter ((Jmp lbl _),bytesCtr) = ((Jmp lbl bytesCtr))
+fillBFilter ((Je lbl _),bytesCtr) = ((Je lbl bytesCtr))
+fillBFilter ((Jne lbl _),bytesCtr) = ((Jne lbl bytesCtr))
+fillBFilter ((Jg lbl _),bytesCtr) = ((Jg lbl bytesCtr))
+fillBFilter ((Jle lbl _),bytesCtr) = ((Jle lbl bytesCtr))
+fillBFilter ((Jge lbl _),bytesCtr) = ((Jge lbl bytesCtr))
+fillBFilter ((Jl lbl _),bytesCtr) = ((Jl lbl bytesCtr))
 fillBFilter (rest,_) = rest
 
 clearData :: Operation -> [Operation]
