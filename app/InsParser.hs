@@ -74,9 +74,13 @@ sumList xs = snd $ foldl f (0, []) xs
     f (acc, res) ("code", x) = (acc + x, res)
     f (acc, res) (_, _) = (acc, acc:res)
 
-fillBFilter :: Operation -> [Int] -> Operation
-fillBFilter (FillB times byte) bytesCtr = (AdBy [(Math "times" (Math "-" (times) (Int (show $ head $ bytesCtr) ) ) (byte) )])
-fillBFilter rest _= rest
+byteFilter :: Operation -> [Operation]
+byteFilter (FillB a b) = [(FillB a b)]
+byteFilter _ = []
+
+fillBFilter :: (Operation,Int) -> Operation
+fillBFilter ((FillB times byte),bytesCtr) = (AdBy [(Math "times" (Math "-" (times) (Int (show $ bytesCtr) ) ) (byte) )])
+fillBFilter (rest,_) = rest
 
 insToBin :: Operation -> MacroTable -> MLMacroTable -> [Word8]
 insToBin (Mov a b) mT _= [176+(valToBin a mT)!!0]++(valToBin b mT)

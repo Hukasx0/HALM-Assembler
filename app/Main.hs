@@ -44,7 +44,7 @@ main = do
             Right corr -> do
                           let mTable = (concat $ map macroTable corr)
                           let mlmTable = (concat $ map multiLineMacroTable corr)
-                          let fillBDone = map (\c -> fillBFilter c (reverse $ sumList $ (map (\op -> getCurrBytes op mTable mlmTable) corr))) corr
+                          let fillBDone = map (\c -> fillBFilter c) (zip (concat $ (map (\x -> byteFilter $ x) corr)) (reverse $ sumList $ (map (\op -> getCurrBytes op mTable mlmTable) corr)))
                           putStrLn ("Writing binary to "++fileName++".bin")
                           B.writeFile (fileName++".bin") (B.pack $ concat $ (codeToIns fillBDone mTable mlmTable))
                           print (concat $ (codeToIns fillBDone mTable mlmTable))
