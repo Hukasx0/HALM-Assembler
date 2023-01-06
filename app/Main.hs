@@ -44,10 +44,11 @@ main = do
             Right corr -> do
                           let mTable = (concat $ map macroTable corr)
                           let mlmTable = (concat $ map multiLineMacroTable corr)
-                          let byteTuple = (zip (concat $ (map (\x -> byteFilter $ x) corr)) (reverse $ sumList $ (map (\op -> getCurrBytes op mTable mlmTable) corr)))
+                          let byteTuple = (zip (concat $ (map (\x -> byteFilter $ x) corr)) (reverse $ sumList $ concat $ (map (\op -> getCurrBytes op mTable mlmTable) corr)))
                           let fillBDone = map (fillBFilter) byteTuple
                           let labelTable = concat $ map (getLabelTable) byteTuple
-                          let final = replaceValues corr (concat $ (map clearData fillBDone))        
+                          let final = replaceValues corr (concat $ (map clearData fillBDone))  
+                          print $ final      
                           putStrLn ("Writing binary to "++fileName++".bin")
                           B.writeFile (fileName++".bin") (B.pack $ concat $ (codeToIns final mTable mlmTable labelTable))
                           print (concat $ (codeToIns final mTable mlmTable labelTable))
