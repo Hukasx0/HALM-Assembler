@@ -3,7 +3,9 @@ module HLParser where
 import Text.Parsec
 import Text.Parsec.String
 import System.Process
+import System.FilePath
 import Control.Monad(void)
+import Data.List
 import Values
 import ValParser
 import InsParser
@@ -28,6 +30,9 @@ commentParser = Comment <$> ( between (string "{-") (string "-}") (many (noneOf 
 
 defMacroParser :: Parser Operation
 defMacroParser = DefM <$> (string "def" >> many1 space >> many1 letter) <*> (spaces >> char '=' >> spaces >> onlyValParser)
+
+includeParser :: Parser Operation
+includeParser = Incl <$> (string "include" >> many1 space >> many1 (noneOf " \n\r"))
 
 insParser :: Parser Operation
 insParser = (try movParser <* spaces) <|> (try interruptParser <* spaces) <|> (try incParser <* spaces) <|> (try decParser <* spaces) 
@@ -57,3 +62,22 @@ macroTable _ =[]
 multiLineMacroTable :: Operation -> MLMacroTable
 multiLineMacroTable (DefMlM name mlm) = [(name,mlm)]
 multiLineMacroTable _ = []
+
+includeFiles :: FilePath -> FilePath -> IO String
+includeFiles fileName folder = do
+  contents <- readFile (folder ++ "/" ++ fileName)
+  let newIncludes = getIncludes contents
+  if null newIncludes
+    then return contents
+    else do
+      includedContents <- mapM (\ni -> includeFiles ni folder) newIncludes
+      return $ concat includedContents
+
+getIncludes :: String -> [String]
+getIncludes = map (drop 8) . filter ("include " `isPrefixOf`) . lines
+
+getDir :: FilePath -> FilePath
+getDir path = takeDirectory $ path
+
+getFileName :: FilePath -> FilePath
+getFileName path = takeFileName $ path

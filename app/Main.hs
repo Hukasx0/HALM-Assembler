@@ -25,7 +25,8 @@ finalParser = try movParser <|> try interruptParser <|> try incParser <|> try de
               <|> try commentParser <|>try dispParser <|>try dispAParser
               <|> try showVParser <|> try defMacroParser <|> try defMlMacroParser 
               <|> try useMLMParser <|> try fillBytesParser <|> try addParser 
-              <|> try subParser <|> try negParser <|> try xorParser <|> defLabelParser
+              <|> try subParser <|> try negParser <|> try xorParser <|>try defLabelParser
+              <|> includeParser
 
 replaceStrings :: String -> String -> String
 replaceStrings input rep = T.unpack $ T.intercalate (T.pack rep) (T.splitOn (T.pack "$filePath") (T.pack $ input))
@@ -33,7 +34,7 @@ replaceStrings input rep = T.unpack $ T.intercalate (T.pack rep) (T.splitOn (T.p
 main :: IO ()
 main = do
           fileName <- head <$> getArgs
-          fContent <- readFile $ fileName
+          fContent <- (++) <$> (includeFiles (getFileName $ fileName) (getDir $ fileName)) <*> (readFile $ fileName)
           putStrLn $ ("input:\n") 
           let content = libList ++ (replaceStrings fContent fileName)
           putStrLn $ content
@@ -47,8 +48,7 @@ main = do
                           let byteTuple = (zip (concat $ (map (\x -> byteFilter $ x) corr)) (reverse $ sumList $ concat $ (map (\op -> getCurrBytes op mTable mlmTable) corr)))
                           let fillBDone = map (fillBFilter) byteTuple
                           let labelTable = concat $ map (getLabelTable) byteTuple
-                          let final = replaceValues corr (concat $ (map clearData fillBDone))  
-                          print $ final      
+                          let final = replaceValues corr (concat $ (map clearData fillBDone))        
                           putStrLn ("Writing binary to "++fileName++".bin")
                           B.writeFile (fileName++".bin") (B.pack $ concat $ (codeToIns final mTable mlmTable labelTable))
                           print (concat $ (codeToIns final mTable mlmTable labelTable))

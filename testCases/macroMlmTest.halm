@@ -16,8 +16,3 @@ def moreDispTests = {
     Disp (times \c \zero)
     disp (times \c \zero)
 }
-
-
-use displayTxt
-
-use moreDispTests

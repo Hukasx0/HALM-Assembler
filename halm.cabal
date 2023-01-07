@@ -19,7 +19,8 @@ executable halm
                       parsec ^>=3.1.15.0,
                       bytestring ^>=0.11.3.1,
                       process ^>=1.6.15.0,
-                      text ^>=2.0.1
+                      text ^>=2.0.1,
+                      filepath ^>=1.4.2.2
 
 
     hs-source-dirs:   app

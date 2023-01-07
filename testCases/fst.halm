@@ -1,8 +1,4 @@
--- This is Haskell type comment
-
-{-
-    This is also Haskell type comment
--}
+include macroMlmTest.halm
 
 addBytes = "Hello, world!",0xA
 
@@ -10,11 +6,8 @@ addBytes = "Hello, world!",0xA
 addBytes = (times 20 (* (+ 1 3) (+ 1 3) ) )
 
 doSh = "echo 'This is a message after compilation :D'"
-mov al,123
-mov bl,0xA
-mov dl,al
-inc al
-dec dl
-cmp al,123
-int 0x10
-jmp test
+
+-- using mlm from "macroMlmTest.halm"
+use displayTxt
+-- again using mlm from "macroMlmTest.halm"
+use moreDispTests
