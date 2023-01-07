@@ -1,0 +1,21 @@
+
+def eoa = (+ 'Z' 1)
+
+mov ah,0x0e
+mov al,'A'
+jmp thrAlph
+
+label thrAlph
+    cmp al,\eoa
+    je kill
+    int 0x10
+    inc al
+    jmp thrAlph
+
+label kill
+    jmp $
+
+fillBytes (- 512 2) 0x0
+addBytes = 0x55,0xaa
+
+doSh = "qemu-system-x86_64 $filePath.bin"

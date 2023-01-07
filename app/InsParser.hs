@@ -146,31 +146,31 @@ insToBin (Cmp a b) mT _ _= [128]++[248+(valToBin a mT)!!0]++[(valToBin b mT)!!0]
 insToBin (Jmp "$" _) _ _ _= [235,254]
 insToBin (Jmp lbl addr) _ _ labelTbl= case  (lookup lbl labelTbl ) of
                         Just value -> if (value>addr) then [235]++(intToWord8List $ (value-addr-2))
-                                      else [235]++[254-(intToWord8List $ addr)!!0]
+                                      else [235]++[254-(intToWord8List $ addr-value)!!0]
                         Nothing -> error $ "This label doesn't exist!"
 insToBin (Je lbl addr) _ _ labelTbl= case  (lookup lbl labelTbl ) of
                         Just value -> if (value>addr) then [116]++(intToWord8List $ (value-addr-2))
-                                      else [116]++[254-(intToWord8List $ addr)!!0]
+                                      else [116]++[254-(intToWord8List $ addr-value)!!0]
                         Nothing -> error $ "This label doesn't exist!"
 insToBin (Jne lbl addr) _ _ labelTbl= case  (lookup lbl labelTbl ) of
                         Just value -> if (value>addr) then [117]++(intToWord8List $ (value-addr-2))
-                                      else [117]++[254-(intToWord8List $ addr)!!0]
+                                      else [117]++[254-(intToWord8List $ addr-value)!!0]
                         Nothing -> error $ "This label doesn't exist!"
 insToBin (Jg lbl addr) _ _ labelTbl= case  (lookup lbl labelTbl ) of
                         Just value -> if (value>addr) then [127]++(intToWord8List $ (value-addr-2))
-                                      else [127]++[254-(intToWord8List $ addr)!!0]
+                                      else [127]++[254-(intToWord8List $ addr-value)!!0]
                         Nothing -> error $ "This label doesn't exist!"
 insToBin (Jle lbl addr) _ _ labelTbl= case  (lookup lbl labelTbl ) of
                         Just value -> if (value>addr) then [126]++(intToWord8List $ (value-addr-2))
-                                      else [126]++[254-(intToWord8List $ addr)!!0]
+                                      else [126]++[254-(intToWord8List $ addr-value)!!0]
                         Nothing -> error $ "This label doesn't exist!"
 insToBin (Jge lbl addr) _ _ labelTbl= case  (lookup lbl labelTbl ) of
                         Just value -> if (value>addr) then [125]++(intToWord8List $ (value-addr-2))
-                                      else [125]++[254-(intToWord8List $ addr)!!0]
+                                      else [125]++[254-(intToWord8List $ addr-value)!!0]
                         Nothing -> error $ "This label doesn't exist!"
 insToBin (Jl lbl addr) _ _ labelTbl= case  (lookup lbl labelTbl ) of
                         Just value -> if (value>addr) then [124]++(intToWord8List $ (value-addr-2))
-                                      else [124]++[254-(intToWord8List $ addr)!!0]
+                                      else [124]++[254-(intToWord8List $ addr-value)!!0]
                         Nothing -> error $ "This label doesn't exist!"
 insToBin (Add (Register a) (Register b)) mT _ _= [00] ++ [192+(8* (valToBin (Register b) mT)!!0)+(valToBin (Register a) mT)!!0]
 insToBin (Add (Register "al") b) mT _ _= [04]++(valToBin b mT)
