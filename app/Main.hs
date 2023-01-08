@@ -34,7 +34,7 @@ replaceStrings input rep = T.unpack $ T.intercalate (T.pack rep) (T.splitOn (T.p
 main :: IO ()
 main = do
           fileName <- head <$> getArgs
-          fContent <- (++) <$> (includeFiles (getFileName $ fileName) (getDir $ fileName)) <*> (readFile $ fileName)
+          fContent <- (includeFiles (getFileName $ fileName) (getDir $ fileName))
           putStrLn $ ("input:\n") 
           let content = libList ++ (replaceStrings fContent fileName)
           putStrLn $ content

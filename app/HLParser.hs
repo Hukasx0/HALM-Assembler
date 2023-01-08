@@ -20,7 +20,7 @@ dispAParser :: Parser Operation
 dispAParser = DispA <$> (string "Disp" >> many1 space >> anyValParser)
 
 showVParser :: Parser Operation
-showVParser = ShowV <$> (string "show" >> many1 space >> anyValParser)
+showVParser = ShowV <$> (string "show" >> many1 space >> (try (string "str") <|> try (string "int") <|> try (string "hex") <|> try (string "oct") <|> try (string "bin"))) <*> (many1 space >> anyValParser)
 
 lineCommentParser :: Parser Operation
 lineCommentParser = Comment <$> (string "--" >> many (noneOf "\n"))
@@ -48,8 +48,11 @@ insToIO :: Operation -> MacroTable -> MLMacroTable -> IO ()
 insToIO (DoSh command) _ _= void $ system command
 insToIO (DispA val) _ _= print $ val
 insToIO (Disp val) mT _= print (valToBin val mT)
-insToIO (ShowV (Str s)) _ _ = putStrLn $ s
-insToIO (ShowV val) mT _ = putStrLn $ show $ word8ListToInt $ (valToBin val mT)
+insToIO (ShowV "str" val) mt _ = putStrLn $ word8ListToString $ (valToBin val mt)
+insToIO (ShowV "int" val) mT _ = putStrLn $ show $ word8ListToInt $ (valToBin val mT)
+insToIO (ShowV "hex" val) mT _ = putStrLn $ intToHex $ word8ListToInt $ (valToBin val mT)
+insToIO (ShowV "oct" val) mT _ = putStrLn $ intToOct $ word8ListToInt $ (valToBin val mT)
+insToIO (ShowV "bin" val) mT _ = putStrLn $ intToBin $ word8ListToInt $ (valToBin val mT)
 insToIO (UseMLM name) mT mlmtable= case  (lookup name mlmtable ) of
                         Just value -> mapM_ (\operation -> insToIO operation mT mlmtable) value
                         Nothing -> error $ "This macro doesn't exist!"

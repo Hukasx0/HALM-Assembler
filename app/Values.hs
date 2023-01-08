@@ -1,8 +1,9 @@
 module Values where
 
 import Text.Parsec
-import Numeric (readHex, readOct)
+import Numeric (readHex, readOct, showIntAtBase)
 import Data.Word
+import Data.Char
 
 type Label = String
 type MacroTable = [(String,Value)]
@@ -16,7 +17,7 @@ data Value = Register String | Int String | Hex String | Oct String | Bin String
 data Operation = Mov Value Value | Interrupt Value | Inc Value | Dec Value | Cmp Value Value | Jmp Label Int 
                 | Je Label Int | Jne Label Int | Jg Label Int | Jge Label Int | Jl Label Int | Jle Label Int
                 | AdBy [Value] | DoSh String | Comment String | Disp Value | DispA Value 
-                | ShowV Value | DefM String Value | DefMlM String [Operation] | UseMLM String
+                | ShowV String Value | DefM String Value | DefMlM String [Operation] | UseMLM String
                 | FillB Value Value | Add Value Value | Sub Value Value | Neg Value | Xor Value Value
                 | DefLabel String | Incl String
                 deriving(Eq,Show)
@@ -35,6 +36,18 @@ getBinFromStr str = sum [2 ^ p | (c, p) <- zip (reverse str) [0..], c == '1']
 
 word8ListToInt :: [Word8] -> Int
 word8ListToInt w8s = sum $ zipWith (*) (map fromIntegral w8s) (iterate (*256) 1)
+
+word8ListToString :: [Word8] -> String
+word8ListToString w8s = map (chr . fromIntegral) w8s
+
+intToHex :: Int -> String
+intToHex x = showIntAtBase 16 intToDigit x ""
+
+intToOct :: Int -> String
+intToOct x = showIntAtBase 8 intToDigit x ""
+
+intToBin :: Int -> String
+intToBin x = showIntAtBase 2 intToDigit x ""
 
 intToWord8List :: Int -> [Word8]
 intToWord8List x
