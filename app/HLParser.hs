@@ -74,7 +74,7 @@ includeFiles fileName folder = do
     then return contents
     else do
       includedContents <- mapM (\ni -> includeFiles ni folder) newIncludes
-      return $ concat includedContents
+      return $ concat includedContents ++ contents
 
 getIncludes :: String -> [String]
 getIncludes = map (drop 8) . filter ("include " `isPrefixOf`) . lines
