@@ -28,6 +28,9 @@ charParser = Ch <$> ( between (char '\'') (char '\'') (anyChar) )
 stringParser :: Parser Value
 stringParser = Str <$> (between (char '"') (char '"') (many (noneOf "\"")))
 
+pointerParser :: Parser Value
+pointerParser = Pointer <$> (many1 letter)
+
 pureStringParser :: Parser String
 pureStringParser = between (char '"') (char '"') (many (noneOf "\""))
 
@@ -38,10 +41,10 @@ macroParser :: Parser Value
 macroParser = UseM <$> (char '\\' >> many1 letter)
 
 anyValParser :: Parser Value
-anyValParser = try registerParser <|> try hexParser <|> try octParser <|> try binParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|> macroParser 
+anyValParser = try registerParser <|> try hexParser <|> try octParser <|> try binParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|> pointerParser 
 
 onlyValParser :: Parser Value
-onlyValParser = try hexParser <|> try intParser <|> try octParser <|> try binParser <|> try charParser <|> try stringParser <|> try mathParser <|> macroParser
+onlyValParser = try hexParser <|> try intParser <|> try octParser <|> try binParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|> pointerParser
 
 valToBin :: Value -> MacroTable -> [Word8]
 valToBin(Register a) _ |a=="al"=[0]
@@ -72,3 +75,8 @@ mathInterpreter "-" a b mT= valToBin (Int <$> show $ ( (word8ListToInt $ valToBi
 mathInterpreter "*" a b mT= valToBin (Int <$> show $ ( (word8ListToInt $ valToBin a mT) * (word8ListToInt $ valToBin b mT) )) mT
 mathInterpreter "/" a b mT= valToBin (Int <$> show $  ( (word8ListToInt $ valToBin a mT) `div` (word8ListToInt $ valToBin b mT) )) mT
 mathInterpreter "++" a b mT= (valToBin a mT) ++ (valToBin b mT)
+
+getLabelAddr :: String -> LabelTable -> [Word8]
+getLabelAddr lblName lT = case  (lookup lblName lT ) of
+                        Just value -> intToWord8List $ value
+                        Nothing -> error $ "This label doesn't exist!"

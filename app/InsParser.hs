@@ -136,6 +136,7 @@ replaceValues ops news = go ops news
     isFillB _            = False
 
 insToBin :: Operation -> MacroTable -> MLMacroTable -> LabelTable -> [Word8]
+insToBin (Mov a (Pointer ptrName)) mT _ lT= [176+(valToBin a mT)!!0]++(getLabelAddr ptrName lT)
 insToBin (Mov a b) mT _ _= [176+(valToBin a mT)!!0]++(valToBin b mT)
 insToBin (Interrupt code) mT _ _= [205]++[(valToBin code mT)!!0]
 insToBin (Inc reg) mT _ _= [254]++[192+(valToBin reg mT)!!0]
