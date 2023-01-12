@@ -1,0 +1,5 @@
+
+show str "You are using halm assembler on Windows"
+show bool $isWindows
+show str "You are using halm assembler on a Unix-like system"
+show bool $isUnix

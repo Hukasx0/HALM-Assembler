@@ -14,6 +14,10 @@ common warnings
 executable halm
     import:           warnings
     main-is:          Main.hs
+    if os(windows)
+        cpp-options: -DWINDOWS
+    else
+        cpp-options: -DUNIX
     other-modules:    Values, ValParser, InsParser, HLParser
     build-depends:    base ^>=4.17.0.0,
                       parsec ^>=3.1.15.0,

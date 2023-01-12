@@ -31,12 +31,18 @@ finalParser = try movParser <|> try interruptParser <|> try incParser <|> try de
 replaceStrings :: String -> String -> String
 replaceStrings input rep = T.unpack $ T.intercalate (T.pack rep) (T.splitOn (T.pack "$filePath") (T.pack $ input))
 
+isWinRep :: String -> String
+isWinRep input = T.unpack $ T.intercalate (T.pack $ show $ isWindows) (T.splitOn (T.pack "$isWindows") (T.pack $ input))
+
+isUnixRep :: String -> String
+isUnixRep input= T.unpack $ T.intercalate (T.pack $ show $ isUnix) (T.splitOn (T.pack "$isUnix") (T.pack $ input))
+
 main :: IO ()
 main = do
           fileName <- head <$> getArgs
           fContent <- (includeFiles (getFileName $ fileName) (getDir $ fileName))
           putStrLn $ ("input:\n") 
-          let content = libList ++ (replaceStrings fContent fileName)
+          let content = libList ++ (isUnixRep $ isWinRep $ (replaceStrings fContent fileName))
           putStrLn $ content
           let parsed = parse (spaces >> many (finalParser <* many1 space) <* eof) fileName content
           putStrLn $ "output:"

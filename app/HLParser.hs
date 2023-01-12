@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module HLParser where
 
 import Text.Parsec
@@ -10,6 +11,20 @@ import Values
 import ValParser
 import InsParser
 
+isWindows :: Int
+#if defined(WINDOWS)
+isWindows = 1
+#else
+isWindows = 0
+#endif
+
+isUnix :: Int
+#if defined(UNIX)
+isUnix = 1
+#else
+isUnix = 0
+#endif
+
 doShParser :: Parser Operation
 doShParser = DoSh <$> (string "doSh" >> spaces >> char '=' >> spaces >> pureStringParser)
 
@@ -20,7 +35,7 @@ dispAParser :: Parser Operation
 dispAParser = DispA <$> (string "Disp" >> many1 space >> anyValParser)
 
 showVParser :: Parser Operation
-showVParser = ShowV <$> (string "show" >> many1 space >> (try (string "str") <|> try (string "int") <|> try (string "hex") <|> try (string "oct") <|> try (string "bin"))) <*> (many1 space >> anyValParser)
+showVParser = ShowV <$> (string "show" >> many1 space >> (try (string "str") <|> try (string "int") <|> try (string "hex") <|> try (string "oct") <|> try (string "bin") <|> try (string "bool"))) <*> (many1 space >> anyValParser)
 
 lineCommentParser :: Parser Operation
 lineCommentParser = Comment <$> (string "--" >> many (noneOf "\n"))
@@ -53,6 +68,9 @@ insToIO (ShowV "int" val) mT _ = putStrLn $ show $ word8ListToInt $ (valToBin va
 insToIO (ShowV "hex" val) mT _ = putStrLn $ intToHex $ word8ListToInt $ (valToBin val mT)
 insToIO (ShowV "oct" val) mT _ = putStrLn $ intToOct $ word8ListToInt $ (valToBin val mT)
 insToIO (ShowV "bin" val) mT _ = putStrLn $ intToBin $ word8ListToInt $ (valToBin val mT)
+insToIO (ShowV "bool" val) mT _ |(word8ListToInt $ (valToBin val mT))==1=putStrLn $ "True"
+                                 |(word8ListToInt $ (valToBin val mT))==0=putStrLn $ "False"
+                                 |otherwise=putStrLn $ "Not a Boolean"
 insToIO (UseMLM name) mT mlmtable= case  (lookup name mlmtable ) of
                         Just value -> mapM_ (\operation -> insToIO operation mT mlmtable) value
                         Nothing -> error $ "This macro doesn't exist!"
