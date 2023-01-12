@@ -19,7 +19,7 @@ data Operation = Mov Value Value | Interrupt Value | Inc Value | Dec Value | Cmp
                 | AdBy [Value] | DoSh String | Comment String | Disp Value | DispA Value 
                 | ShowV String Value | DefM String Value | DefMlM String [Operation] | UseMLM String
                 | FillB Value Value | Add Value Value | Sub Value Value | Neg Value | Xor Value Value
-                | DefLabel String | Incl String
+                | DefLabel String | Incl String | If Value [Operation]
                 deriving(Eq,Show)
 
 letterDigitParser :: Parsec String () Char

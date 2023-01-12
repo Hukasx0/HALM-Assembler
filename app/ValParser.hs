@@ -75,6 +75,19 @@ mathInterpreter "-" a b mT= valToBin (Int <$> show $ ( (word8ListToInt $ valToBi
 mathInterpreter "*" a b mT= valToBin (Int <$> show $ ( (word8ListToInt $ valToBin a mT) * (word8ListToInt $ valToBin b mT) )) mT
 mathInterpreter "/" a b mT= valToBin (Int <$> show $  ( (word8ListToInt $ valToBin a mT) `div` (word8ListToInt $ valToBin b mT) )) mT
 mathInterpreter "++" a b mT= (valToBin a mT) ++ (valToBin b mT)
+mathInterpreter "==" a b mT |(valToBin a mT)==(valToBin b mT)=[1]
+                            |otherwise=[0]
+mathInterpreter "!=" a b mT |(valToBin a mT)/=(valToBin b mT)=[1]
+                            |otherwise=[0]
+mathInterpreter "and" a b mT |((word8ListToInt $ valToBin a mT)==1 && (word8ListToInt $ valToBin b mT)==1)=[1]
+                            |otherwise=[0]
+mathInterpreter "&&" a b mT |((word8ListToInt $ valToBin a mT)==1 && (word8ListToInt $ valToBin b mT)==1)=[1]
+                            |otherwise=[0]
+mathInterpreter "or" a b mT |((word8ListToInt $ valToBin a mT)==1 || (word8ListToInt $ valToBin b mT)==1)=[1]
+                            |otherwise=[0]
+mathInterpreter "||" a b mT |((word8ListToInt $ valToBin a mT)==1 || (word8ListToInt $ valToBin b mT)==1)=[1]
+                            |otherwise=[0]
+mathInterpreter _ _ _ _ = error $ "Not known operation in brackets (operation value1 value2)"
 
 getLabelAddr :: String -> LabelTable -> [Word8]
 getLabelAddr lblName lT = case  (lookup lblName lT ) of

@@ -187,4 +187,7 @@ insToBin (AdBy bytes) mT _ _= concat $ map (\b -> valToBin b mT) bytes
 insToBin (UseMLM name) mT mlmtable labelTbl= case  (lookup name mlmtable ) of
                         Just value -> concat $ (map (\operation -> insToBin operation mT mlmtable labelTbl) value)
                         Nothing -> error $ "This macro doesn't exist!"
+insToBin (If statement operations) mT mlmtable labelTbl |(word8ListToInt $ (valToBin statement mT))==1=concat $ map (\op -> insToBin op mT mlmtable labelTbl) operations
+                                                        |(word8ListToInt $ (valToBin statement mT))==0=[]
+                                                        |otherwise=error $ "Wrong value in if statement"
 insToBin _ _ _ _= []

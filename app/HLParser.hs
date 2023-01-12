@@ -59,6 +59,9 @@ insParser = (try movParser <* spaces) <|> (try interruptParser <* spaces) <|> (t
 defMlMacroParser :: Parser Operation
 defMlMacroParser = DefMlM <$> (string "def" >> many1 space >> many1 letter) <*> (spaces >> char '=' >> spaces >> char '{' >> spaces >> many1 insParser <* spaces <* char '}')
 
+ifParser :: Parser Operation
+ifParser = If <$> (string "if" >> spaces >> onlyValParser) <*> (spaces >> char '{' >> spaces >> many1 insParser <* spaces <* char '}')
+
 insToIO :: Operation -> MacroTable -> MLMacroTable -> IO ()
 insToIO (DoSh command) _ _= void $ system command
 insToIO (DispA val) _ _= print $ val
@@ -74,6 +77,9 @@ insToIO (ShowV "bool" val) mT _ |(word8ListToInt $ (valToBin val mT))==1=putStrL
 insToIO (UseMLM name) mT mlmtable= case  (lookup name mlmtable ) of
                         Just value -> mapM_ (\operation -> insToIO operation mT mlmtable) value
                         Nothing -> error $ "This macro doesn't exist!"
+insToIO (If statement operations) mT mlmtable |(word8ListToInt $ (valToBin statement mT))==1=mapM_ (\op -> insToIO op mT mlmtable) operations
+                                              |(word8ListToInt $ (valToBin statement mT))==0=pure ()
+                                              |otherwise=error $ "Wrong value in if statement"
 insToIO _ _ _= pure ()
 
 macroTable :: Operation -> MacroTable
