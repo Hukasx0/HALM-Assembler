@@ -10,8 +10,8 @@ type MacroTable = [(String,Value)]
 type MLMacroTable = [(String,[Operation])]
 type LabelTable = [(String,Int)]
 
-data Value = Register String | Int String | Hex String | Oct String | Bin String | Ch Char | Str String 
-             | Math String Value Value | UseM String | Pointer String
+data Value = Register8 String | Register16 String | Int String | Hex String | Oct String | Bin String | Ch Char | Str String 
+             | Math String Value Value | UseM String | Pointer String | Deref Label
                 deriving(Eq,Show)
 
 data Operation = Mov Value Value | Interrupt Value | Inc Value | Dec Value | Cmp Value Value | Jmp Label Int 

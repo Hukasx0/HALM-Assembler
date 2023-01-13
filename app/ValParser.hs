@@ -6,9 +6,12 @@ import Data.Word
 
 import Values
 
-registerParser :: Parser Value
-registerParser = Register <$> (try (string "al") <|>try (string "bl") <|>try (string "cl") <|>try (string "dl")
-                               <|> string "ah" <|> string "bh" <|> string "ch" <|> string "dh")
+registerParser8 :: Parser Value
+registerParser8 = Register8 <$> (try (string "al") <|>try (string "bl") <|>try (string "cl") <|>try (string "dl")
+                               <|> try (string "ah") <|> try (string "bh") <|> try (string "ch") <|> try (string "dh"))
+
+registerParser16 :: Parser Value
+registerParser16 = Register16 <$> (string "ax" <|> string "bx" <|> string "cx" <|> string "dx")
 
 intParser :: Parser Value
 intParser = Int <$> (many1 digit)
@@ -31,6 +34,9 @@ stringParser = Str <$> (between (char '"') (char '"') (many (noneOf "\"")))
 pointerParser :: Parser Value
 pointerParser = Pointer <$> (many1 letter)
 
+derefParser :: Parser Value
+derefParser = Deref <$> (between (char '[') (char ']') (many1 letter))
+
 pureStringParser :: Parser String
 pureStringParser = between (char '"') (char '"') (many (noneOf "\""))
 
@@ -41,13 +47,16 @@ macroParser :: Parser Value
 macroParser = UseM <$> (char '\\' >> many1 letter)
 
 anyValParser :: Parser Value
-anyValParser = try registerParser <|> try hexParser <|> try octParser <|> try binParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|> pointerParser 
+anyValParser = try registerParser <|> try hexParser <|> try octParser <|> try binParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|> derefParser 
 
 onlyValParser :: Parser Value
-onlyValParser = try hexParser <|> try intParser <|> try octParser <|> try binParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|> pointerParser
+onlyValParser = try hexParser <|> try intParser <|> try octParser <|> try binParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|> derefParser
+
+registerParser :: Parser Value
+registerParser = try registerParser8 <|> registerParser16
 
 valToBin :: Value -> MacroTable -> [Word8]
-valToBin(Register a) _ |a=="al"=[0]
+valToBin(Register8 a) _ |a=="al"=[0]
                        |a=="cl"=[1]
                        |a=="dl"=[2]
                        |a=="bl"=[3]
@@ -55,6 +64,10 @@ valToBin(Register a) _ |a=="al"=[0]
                        |a=="ch"=[5]
                        |a=="dh"=[6]
                        |a=="bh"=[7]
+valToBin(Register16 a) _ |a=="ax"=[8]
+                       |a=="cx"=[9]
+                       |a=="dx"=[10]
+                       |a=="bx"=[11]
 
 valToBin(Int x) _ = intToWord8List (read $ x)
 valToBin(Hex c) _ = intToWord8List $ getHexFromStr $ c

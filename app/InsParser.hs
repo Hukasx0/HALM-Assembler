@@ -136,13 +136,23 @@ replaceValues ops news = go ops news
     isFillB _            = False
 
 insToBin :: Operation -> MacroTable -> MLMacroTable -> LabelTable -> [Word8]
-insToBin (Mov a (Pointer ptrName)) mT _ lT= [176+(valToBin a mT)!!0]++(getLabelAddr ptrName lT)
-insToBin (Mov a b) mT _ _= [176+(valToBin a mT)!!0]++(valToBin b mT)
+insToBin (Mov (Register8 a) (Pointer ptrName)) mT _ lT= [176+(valToBin (Register8 a) mT)!!0]++(getLabelAddr ptrName lT)
+insToBin (Mov (Register8 "al") (Deref name)) mT _ lT= [160]++(getLabelAddr name lT)
+insToBin (Mov (Register8 "ax") (Deref name)) mT _ lT= [161]++(getLabelAddr name lT)
+insToBin (Mov (Register8 a) (Deref name)) mT _ lT= [138]++[6+8*(valToBin (Register8 a) mT)!!0]++(getLabelAddr name lT)++[0]
+insToBin (Mov (Register16 a) (Deref name)) mT _ lT= [139]++[6+8*((valToBin (Register16 a) mT)!!0-8)]++(getLabelAddr name lT)++[0]
+insToBin (Mov (Register16 a) (Pointer ptrName)) mT _ lT= [184-8+(valToBin (Register16 a) mT)!!0]++(getLabelAddr ptrName lT)++[00]
+insToBin (Mov (Register8 a) (Register8 b)) mT _ _= [136]++[192+(8 *(valToBin (Register8 b) mT)!!0)+(valToBin (Register8 a) mT)!!0]
+insToBin (Mov (Register8 a) b) mT _ _= [176+(valToBin (Register8 a) mT)!!0]++[(valToBin b mT)!!0]
+insToBin (Mov (Register16 a) (Register16 b)) mT _ _= [137]++[192+(8 *(valToBin (Register16 b) mT)!!0)+(valToBin (Register16 a) mT)!!0]
+insToBin (Mov (Register16 a) b) mT _ _= [176+(valToBin (Register16 a) mT)!!0]++(map (uncurry (+)) $ zip [0,0] ((valToBin b mT) ++ replicate (2 - length (valToBin b mT)) 0))
 insToBin (Interrupt code) mT _ _= [205]++[(valToBin code mT)!!0]
-insToBin (Inc reg) mT _ _= [254]++[192+(valToBin reg mT)!!0]
-insToBin (Dec reg) mT _ _= [254]++[200+(valToBin reg mT)!!0]
-insToBin (Cmp (Register a) (Register b)) mT _ _= [56] ++ [192+ (8* (valToBin (Register b) mT)!!0) +(valToBin (Register a) mT)!!0]
-insToBin (Cmp (Register "al") b) mT _ _= [60] ++ [(valToBin b mT)!!0]
+insToBin (Inc (Register8 reg)) mT _ _= [254]++[192+(valToBin (Register8 reg) mT)!!0]
+insToBin (Dec (Register8 reg)) mT _ _= [254]++[200+(valToBin (Register8 reg) mT)!!0]
+insToBin (Inc (Register16 reg)) mT _ _= [64-8+(valToBin (Register16 reg) mT)!!0]
+insToBin (Dec (Register16 reg)) mT _ _= [64+(valToBin (Register16 reg) mT)!!0]
+insToBin (Cmp (Register8 a) (Register8 b)) mT _ _= [56] ++ [192+ (8* (valToBin (Register8 b) mT)!!0) +(valToBin (Register8 a) mT)!!0]
+insToBin (Cmp (Register8 "al") b) mT _ _= [60] ++ [(valToBin b mT)!!0]
 insToBin (Cmp a b) mT _ _= [128]++[248+(valToBin a mT)!!0]++[(valToBin b mT)!!0]
 insToBin (Jmp "$" _) _ _ _= [235,254]
 insToBin (Jmp lbl addr) _ _ labelTbl= case  (lookup lbl labelTbl ) of
@@ -173,15 +183,16 @@ insToBin (Jl lbl addr) _ _ labelTbl= case  (lookup lbl labelTbl ) of
                         Just value -> if (value>addr) then [124]++(intToWord8List $ (value-addr-2))
                                       else [124]++[254-(intToWord8List $ addr-value)!!0]
                         Nothing -> error $ "This label doesn't exist!"
-insToBin (Add (Register a) (Register b)) mT _ _= [00] ++ [192+(8* (valToBin (Register b) mT)!!0)+(valToBin (Register a) mT)!!0]
-insToBin (Add (Register "al") b) mT _ _= [04]++(valToBin b mT)
+insToBin (Add (Register8 a) (Register8 b)) mT _ _= [00] ++ [192+(8* (valToBin (Register8 b) mT)!!0)+(valToBin (Register8 a) mT)!!0]
+insToBin (Add (Register8 "al") b) mT _ _= [04]++(valToBin b mT)
 insToBin (Add a b) mT _ _= [128]++[192+(valToBin a mT)!!0]++(valToBin b mT)
-insToBin (Sub (Register a) (Register b)) mT _ _= [40]++[192+(8* (valToBin (Register b) mT)!!0)+(valToBin (Register a) mT)!!0]
-insToBin (Sub (Register "al") b) mT _ _= [44]++(valToBin b mT)
+insToBin (Sub (Register8 a) (Register8 b)) mT _ _= [40]++[192+(8* (valToBin (Register8 b) mT)!!0)+(valToBin (Register8 a) mT)!!0]
+insToBin (Sub (Register8 "al") b) mT _ _= [44]++(valToBin b mT)
 insToBin (Sub a b) mT _ _= [128]++[232+(valToBin a mT)!!0]++(valToBin b mT)
-insToBin (Neg a) mT _ _=[246]++[216+(valToBin a mT)!!0]
-insToBin (Xor (Register a) (Register b)) mT _ _= [48]++[192+(8* (valToBin (Register b) mT)!!0)+(valToBin (Register a) mT)!!0]
-insToBin (Xor (Register "al") b) mT _ _=[52]++(valToBin b mT)
+insToBin (Neg (Register8 a)) mT _ _=[246]++[216+(valToBin (Register8 a) mT)!!0]
+insToBin (Neg (Register16 a)) mT _ _=[247]++[208+(valToBin (Register16 a) mT)!!0]
+insToBin (Xor (Register8 a) (Register8 b)) mT _ _= [48]++[192+(8* (valToBin (Register8 b) mT)!!0)+(valToBin (Register8 a) mT)!!0]
+insToBin (Xor (Register8 "al") b) mT _ _=[52]++(valToBin b mT)
 insToBin (Xor a b) mT _ _= [128]++[240+(valToBin a mT)!!0]++(valToBin b mT)
 insToBin (AdBy bytes) mT _ _= concat $ map (\b -> valToBin b mT) bytes
 insToBin (UseMLM name) mT mlmtable labelTbl= case  (lookup name mlmtable ) of
