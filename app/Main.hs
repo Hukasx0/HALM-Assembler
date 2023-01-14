@@ -26,7 +26,7 @@ finalParser = try movParser <|> try interruptParser <|> try incParser <|> try de
               <|> try showVParser <|> try defMacroParser <|> try defMlMacroParser 
               <|> try useMLMParser <|> try fillBytesParser <|> try addParser 
               <|> try subParser <|> try negParser <|> try xorParser <|> try defLabelParser
-              <|> try includeParser <|> ifParser
+              <|> try includeParser <|>try ifParser <|>try pushParser <|> popParser
 
 replaceStrings :: String -> String -> String
 replaceStrings input rep = T.unpack $ T.intercalate (T.pack rep) (T.splitOn (T.pack "$filePath") (T.pack $ input))

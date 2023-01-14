@@ -105,4 +105,4 @@ mathInterpreter _ _ _ _ = error $ "Not known operation in brackets (operation va
 getLabelAddr :: String -> LabelTable -> [Word8]
 getLabelAddr lblName lT = case  (lookup lblName lT ) of
                         Just value -> intToWord8List $ value
-                        Nothing -> error $ "This label doesn't exist!"
+                        Nothing -> [0] --error $ "This label doesn't exist!"

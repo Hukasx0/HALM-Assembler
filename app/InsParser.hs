@@ -8,7 +8,7 @@ import Values
 import ValParser
 
 movParser :: Parser Operation
-movParser = Mov <$>  (string "mov" >> many1 space >> registerParser) <*> (char ',' >> spaces >> anyValParser)
+movParser = Mov <$>  (string "mov" >> many1 space >> (try registerParser <|> derefParser)) <*> (char ',' >> spaces >> anyValParser)
 
 interruptParser :: Parser Operation
 interruptParser = Interrupt <$> (string "int" >> many1 space >> onlyValParser)
@@ -54,6 +54,12 @@ xorParser = Xor <$> (string "xor" >> many1 space >> registerParser) <*> (char ',
 
 cmpParser :: Parser Operation
 cmpParser = Cmp <$>  (string "cmp" >> many1 space >> anyValParser) <*> (char ',' >> spaces >> anyValParser)
+
+pushParser :: Parser Operation
+pushParser = Push <$> (string "push" >> many1 space >> registerParser)
+
+popParser :: Parser Operation
+popParser = Pop <$> (string "pop" >> many1 space >> registerParser)
 
 defLabelParser :: Parser Operation
 defLabelParser = DefLabel <$> (string "label" >> many1 space >> many1 letter)
@@ -146,6 +152,8 @@ insToBin (Mov (Register8 a) (Register8 b)) mT _ _= [136]++[192+(8 *(valToBin (Re
 insToBin (Mov (Register8 a) b) mT _ _= [176+(valToBin (Register8 a) mT)!!0]++[(valToBin b mT)!!0]
 insToBin (Mov (Register16 a) (Register16 b)) mT _ _= [137]++[192+(8 *(valToBin (Register16 b) mT)!!0)+(valToBin (Register16 a) mT)!!0]
 insToBin (Mov (Register16 a) b) mT _ _= [176+(valToBin (Register16 a) mT)!!0]++(map (uncurry (+)) $ zip [0,0] ((valToBin b mT) ++ replicate (2 - length (valToBin b mT)) 0))
+insToBin (Mov (Deref "bx") (Register8 b)) mT _ _ =[136]++[7+(valToBin (Register8 b) mT)!!0]
+insToBin (Mov (Deref "bx") (Register16 b)) mT _ _ =[137]++[7+((valToBin (Register16 b) mT)!!0-8)]
 insToBin (Interrupt code) mT _ _= [205]++[(valToBin code mT)!!0]
 insToBin (Inc (Register8 reg)) mT _ _= [254]++[192+(valToBin (Register8 reg) mT)!!0]
 insToBin (Dec (Register8 reg)) mT _ _= [254]++[200+(valToBin (Register8 reg) mT)!!0]
@@ -194,6 +202,10 @@ insToBin (Neg (Register16 a)) mT _ _=[247]++[208+(valToBin (Register16 a) mT)!!0
 insToBin (Xor (Register8 a) (Register8 b)) mT _ _= [48]++[192+(8* (valToBin (Register8 b) mT)!!0)+(valToBin (Register8 a) mT)!!0]
 insToBin (Xor (Register8 "al") b) mT _ _=[52]++(valToBin b mT)
 insToBin (Xor a b) mT _ _= [128]++[240+(valToBin a mT)!!0]++(valToBin b mT)
+insToBin (Push (Register16 a)) mT _ _=[72+(valToBin (Register16 a) mT)!!0]
+insToBin (Push (Register8 a)) mT _ _=error $ ("Cannot push '"++a++"' register value")
+insToBin (Pop (Register16 a)) mT _ _=[80+(valToBin (Register16 a) mT)!!0]
+insToBin (Push (Register8 a)) mT _ _=error $ ("Cannot pop value to '"++a++"' register")
 insToBin (AdBy bytes) mT _ _= concat $ map (\b -> valToBin b mT) bytes
 insToBin (UseMLM name) mT mlmtable labelTbl= case  (lookup name mlmtable ) of
                         Just value -> concat $ (map (\operation -> insToBin operation mT mlmtable labelTbl) value)
