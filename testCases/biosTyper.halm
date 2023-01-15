@@ -1,0 +1,99 @@
+use clear           -- clear screen (multi line macro)
+
+label IO
+   mov ah,0         -- get user keyboard input
+   int 0x16         -- ^
+   cmp al,0x8       -- if backspace pressed then 
+   je backspace     -- remove previous character
+   cmp al,0x9       -- if tab pressed
+   je tab           -- then display x3 spaces
+   cmp al,0x1B      -- if any button except "esc" is clicked
+   jne display      -- then display character
+   jmp end          -- else end program
+
+label display
+   mov ah,0x0e      -- display char on screen
+   int 0x10         -- ^
+   jmp IO           -- loop
+
+label backspace
+   use replaceChar  -- using multi line macro to replace character
+   jmp IO           -- loop
+
+label tab
+    use manySpaces  -- using multi line macro to display x3 spaces
+    jmp IO          -- loop
+
+label end
+   use clear        -- using multi line macro to clear the screen
+   use endTxt       -- using multi line macro to display text
+   jmp $            -- end of program
+
+fillBytes (- 512 2) 0x0
+
+addBytes = 0xaa55
+
+                    -- if system==linux or bsd or macos then execute this command:
+if $isUnix {
+    doSh = "qemu-system-x86_64 $filePath.bin"
+}
+
+                    -- some multi line macros
+
+def endTxt = {
+                    -- display on screen "end of program"
+    mov ah,0x0e
+    mov al,'e'
+    int 0x10
+    mov al,'n'
+    int 0x10
+    mov al,'d'
+    int 0x10
+    mov al,' '
+    int 0x10
+    mov al,'o'
+    int 0x10
+    mov al,'f'
+    int 0x10
+    mov al,' '
+    int 0x10
+    mov al,'p'
+    int 0x10
+    mov al,'r'
+    int 0x10
+    mov al,'o'
+    int 0x10
+    mov al,'g'
+    int 0x10
+    mov al,'r'
+    int 0x10
+    mov al,'a'
+    int 0x10
+    mov al,'m'
+    int 0x10
+}
+
+def clear = {
+                -- clear screen
+    mov ah,0x0
+    mov al,0
+    int 0x10
+}
+
+def replaceChar = {
+                -- move one char back, replace it and come back to the same position
+    int 0x10
+    mov al,' '
+    int 0x10
+    mov al,0x8
+    int 0x10
+}
+
+def manySpaces = {
+                -- display x3 spaces
+    mov ah,0x0e
+    mov al,' '
+    int 0x10
+    int 0x10
+    int 0x10
+}
