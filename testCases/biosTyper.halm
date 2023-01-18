@@ -35,7 +35,7 @@ addBytes = 0xaa55
 
                     -- if system==linux or bsd or macos then execute this command:
 if $isUnix {
-    doSh = "qemu-system-x86_64 $filePath.bin"
+    doSh = "qemu-system-x86_64 $filePath/$fileName.bin"
 }
 
                     -- some multi line macros

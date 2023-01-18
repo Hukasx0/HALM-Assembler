@@ -28,8 +28,11 @@ finalParser = try movParser <|> try interruptParser <|> try incParser <|> try de
               <|> try subParser <|> try negParser <|> try xorParser <|> try defLabelParser
               <|> try includeParser <|>try ifParser <|>try pushParser <|> popParser
 
-replaceStrings :: String -> String -> String
-replaceStrings input rep = T.unpack $ T.intercalate (T.pack rep) (T.splitOn (T.pack "$filePath") (T.pack $ input))
+replaceFpath :: String -> String -> String
+replaceFpath input rep = T.unpack $ T.intercalate (T.pack rep) (T.splitOn (T.pack "$filePath") (T.pack $ input))
+
+replacefName :: String -> String -> String
+replacefName input rep = T.unpack $ T.intercalate (T.pack rep) (T.splitOn (T.pack "$fileName") (T.pack $ input))
 
 isWinRep :: String -> String
 isWinRep input = T.unpack $ T.intercalate (T.pack $ show $ isWindows) (T.splitOn (T.pack "$isWindows") (T.pack $ input))
@@ -42,7 +45,7 @@ main = do
           fileName <- head <$> getArgs
           fContent <- (includeFiles (getFileName $ fileName) (getDir $ fileName))
           putStrLn $ ("input:\n") 
-          let content = libList ++ (isUnixRep $ isWinRep $ (replaceStrings fContent fileName))
+          let content = libList ++ (isUnixRep $ isWinRep $ (replacefName (replaceFpath fContent (getDir $ fileName)) (getFileName $ fileName)))
           putStrLn $ content
           let parsed = parse (spaces >> many (finalParser <* many1 space) <* eof) fileName content
           putStrLn $ "output:"
