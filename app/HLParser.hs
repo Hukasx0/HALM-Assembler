@@ -49,6 +49,15 @@ defMacroParser = DefM <$> (string "def" >> many1 space >> many1 letter) <*> (spa
 includeParser :: Parser Operation
 includeParser = Incl <$> (string "include" >> many1 space >> many1 (noneOf " \n\r"))
 
+shadowParser :: Parser Operation
+shadowParser = Shadow <$> (string "shadow" >> many1 space >> string "def" >> spaces >> many1 letter)
+
+defAsParser :: Parser Operation
+defAsParser = DefAs <$> (string "def" >> many1 space >> string "as" >> many1 space >> many1 letter ) <*> (many1 space >> many1 letter) <*> (spaces >> char '=' >> spaces >> char '{' >> spaces >> many1 insParser <* spaces <* char '}')
+
+useAsParser :: Parser Operation
+useAsParser = UseAs <$> (string "Use" >> many1 space >> many1 letter) <*> (spaces >> string "->" >> spaces >> many1 letter)
+
 insParser :: Parser Operation
 insParser = (try movParser <* spaces) <|> (try interruptParser <* spaces) <|> (try incParser <* spaces) <|> (try decParser <* spaces) 
               <|> (try cmpParser <* spaces) <|> (try jmpParser <* spaces) <|> (try jeParser <* spaces) <|> (try jneParser <* spaces)
@@ -91,6 +100,25 @@ multiLineMacroTable :: Operation -> MLMacroTable
 multiLineMacroTable (DefMlM name mlm) = [(name,mlm)]
 multiLineMacroTable _ = []
 
+shadowNames :: Operation -> [String]
+shadowNames (Shadow name) = [name]
+shadowNames _ = []
+
+shadowTable :: Operation -> [String] -> ShadowTable
+shadowTable (DefAs shadowName macroName ops) shadowsList = if (elem shadowName shadowsList) then [(shadowName, macroName, ops)]
+                                                           else error $ "This shadow does not exist"
+shadowTable _ _= []
+
+replaceShadows :: Operation -> ShadowTable -> [Operation]
+replaceShadows (UseAs s1 s2) list = 
+  let matchingTuple = filter (\(a,b,_) -> a == s1 && b == s2) list
+  in  case matchingTuple of
+        (a, b, op):_ -> op
+        _ -> error "This shadow does not exist"
+replaceShadows (DefAs _ _ _) _ = []
+replaceShadows (Shadow _) _ = []
+replaceShadows a _ = [a]
+
 includeFiles :: FilePath -> FilePath -> IO String
 includeFiles fileName folder = do
   contents <- readFile (folder ++ "/" ++ fileName)
@@ -109,3 +137,6 @@ getDir path = takeDirectory $ path
 
 getFileName :: FilePath -> FilePath
 getFileName path = takeFileName $ path
+
+getFileNameWithoutExt :: FilePath -> FilePath
+getFileNameWithoutExt path = takeBaseName $ path

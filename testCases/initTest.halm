@@ -1,0 +1,2 @@
+-- create folder named same as file and three files inside it: main.halm, asm.halm, hiLevel.halm
+Use builtIn->init

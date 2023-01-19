@@ -9,6 +9,7 @@ type Label = String
 type MacroTable = [(String,Value)]
 type MLMacroTable = [(String,[Operation])]
 type LabelTable = [(String,Int)]
+type ShadowTable = [(String,String,[Operation])]
 
 data Value = Register8 String | Register16 String | Int String | Hex String | Oct String | Bin String | Ch Char | Str String 
              | Math String Value Value | UseM String | Pointer String | Deref Label
@@ -20,6 +21,7 @@ data Operation = Mov Value Value | Interrupt Value | Inc Value | Dec Value | Cmp
                 | ShowV String Value | DefM String Value | DefMlM String [Operation] | UseMLM String
                 | FillB Value Value | Add Value Value | Sub Value Value | Neg Value | Xor Value Value
                 | DefLabel String | Incl String | If Value [Operation] | Push Value | Pop Value
+                | Shadow String | DefAs String String [Operation] | UseAs String String
                 deriving(Eq,Show)
 
 letterDigitParser :: Parsec String () Char
@@ -55,10 +57,18 @@ intToWord8List x
   | x <= 255  = [fromIntegral x]
   | otherwise = fromIntegral (x `mod` 256) : intToWord8List (x `div` 256)
 
-helloLib :: String
-helloLib = (  "def hello = {mov ah,0x0e mov al,'H' int 0x10 mov ah,0x0e mov al,'e' int 0x10 mov ah,0x0e mov al,'l' int 0x10 mov ah,0x0e"
-                ++
-              "mov al,'l'int 0x10 mov ah,0x0e mov al,'o' int 0x10 jmp $ addBytes = (times (- 508 (* 6 5) ) 0x0) addBytes = 0x55,0xaa doSh = \"qemu-system-x86_64 $filePath.bin\"}\n" )
+initLib :: String
+initLib = "def as Lib init = {\nshow str \"Initializing with name $name\"\nif $isWindows {\ndoSh = \"mkdir $filePath\\$name\""
+        ++
+          "doSh = \"echo include hiLevel.halm > $filePath\\$name\\main.halm\"\ndoSh = \"echo include asm.halm >> $filePath\\$name\\main.halm\"\ndoSh = \"type nul > $filePath\\$name\\asm.halm\""
+        ++
+          "doSh = \"type nul > $filePath\\$name\\hiLevel.halm\"\nshow str \"$filePath\\$name\\ \"\nshow str \"      main.halm\"\nshow str \"      asm.halm\"\nshow str \"      hiLevel.halm\"\n}"
+        ++    
+          "if $isUnix {\ndoSh = \"mkdir $filePath/$name\"\ndoSh = \"echo 'include hiLevel.halm' > $filePath/$name/main.halm\"\ndoSh = \"echo 'include asm.halm' >> $filePath/$name/main.halm\""
+        ++
+          "doSh = \"touch $filePath/$name/asm.halm\"\ndoSh = \"touch $filePath/$name/hiLevel.halm\"show str \"$filePath/$name/\"show str \"      main.halm\"show str \"      asm.halm\""
+        ++
+          "show str \"      hiLevel.halm\"\n}\n}\n"
 
 libList :: String
-libList = ""--helloLib
+libList = "shadow def builtIn\n"++initLib

@@ -26,13 +26,17 @@ finalParser = try movParser <|> try interruptParser <|> try incParser <|> try de
               <|> try showVParser <|> try defMacroParser <|> try defMlMacroParser 
               <|> try useMLMParser <|> try fillBytesParser <|> try addParser 
               <|> try subParser <|> try negParser <|> try xorParser <|> try defLabelParser
-              <|> try includeParser <|>try ifParser <|>try pushParser <|> popParser
+              <|> try includeParser <|>try ifParser <|>try pushParser <|>try popParser
+              <|> try shadowParser <|> try defAsParser <|> useAsParser
 
 replaceFpath :: String -> String -> String
 replaceFpath input rep = T.unpack $ T.intercalate (T.pack rep) (T.splitOn (T.pack "$filePath") (T.pack $ input))
 
 replacefName :: String -> String -> String
 replacefName input rep = T.unpack $ T.intercalate (T.pack rep) (T.splitOn (T.pack "$fileName") (T.pack $ input))
+
+replacefNameNoExt :: String -> String -> String
+replacefNameNoExt input rep = T.unpack $ T.intercalate (T.pack rep) (T.splitOn (T.pack "$name") (T.pack $ input))
 
 isWinRep :: String -> String
 isWinRep input = T.unpack $ T.intercalate (T.pack $ show $ isWindows) (T.splitOn (T.pack "$isWindows") (T.pack $ input))
@@ -45,20 +49,21 @@ main = do
           fileName <- head <$> getArgs
           fContent <- (includeFiles (getFileName $ fileName) (getDir $ fileName))
           putStrLn $ ("input:\n") 
-          let content = libList ++ (isUnixRep $ isWinRep $ (replacefName (replaceFpath fContent (getDir $ fileName)) (getFileName $ fileName)))
+          let content = (isUnixRep $ isWinRep $ (replacefNameNoExt (replacefName (replaceFpath (libList ++ fContent) (getDir $ fileName)) (getFileName $ fileName))) (getFileNameWithoutExt $ fileName))
           putStrLn $ content
           let parsed = parse (spaces >> many (finalParser <* many1 space) <* eof) fileName content
           putStrLn $ "output:"
           case parsed of
             Left err -> print err
             Right corr -> do
-                          let mTable = (concat $ map macroTable corr)
-                          let mlmTable = (concat $ map multiLineMacroTable corr)
-                          let byteTuple = (zip (concat $ (map (\x -> byteFilter $ x) corr)) (reverse $ sumList $ concat $ (map (\op -> getCurrBytes op mTable mlmTable) corr)))
+                          let shadRep = concat $ map (\c -> replaceShadows c (concat $ map (\c -> shadowTable c (concat $ map shadowNames corr)) corr)) corr
+                          let mTable = (concat $ map macroTable shadRep)
+                          let mlmTable = (concat $ map multiLineMacroTable shadRep)
+                          let byteTuple = (zip (concat $ (map (\x -> byteFilter $ x) shadRep)) (reverse $ sumList $ concat $ (map (\op -> getCurrBytes op mTable mlmTable) shadRep)))
                           let fillBDone = map (fillBFilter) byteTuple
                           let labelTable = concat $ map (getLabelTable) byteTuple
-                          let final = replaceValues corr (concat $ (map clearData fillBDone))        
+                          let final = replaceValues shadRep (concat $ (map clearData fillBDone))        
                           putStrLn ("Writing binary to "++fileName++".bin")
                           B.writeFile (fileName++".bin") (B.pack $ concat $ (codeToIns final mTable mlmTable labelTable))
                           print (concat $ (codeToIns final mTable mlmTable labelTable))
-                          codeToIO corr mTable mlmTable
+                          codeToIO shadRep mTable mlmTable
