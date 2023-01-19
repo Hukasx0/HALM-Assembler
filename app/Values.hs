@@ -58,7 +58,7 @@ intToWord8List x
   | otherwise = fromIntegral (x `mod` 256) : intToWord8List (x `div` 256)
 
 initLib :: String
-initLib = "def as Lib init = {\nshow str \"Initializing with name $name\"\nif $isWindows {\ndoSh = \"mkdir $filePath\\$name\""
+initLib = "def as builtIn init = {\nshow str \"Initializing with name $name\"\nif $isWindows {\ndoSh = \"mkdir $filePath\\$name\""
         ++
           "doSh = \"echo include hiLevel.halm > $filePath\\$name\\main.halm\"\ndoSh = \"echo include asm.halm >> $filePath\\$name\\main.halm\"\ndoSh = \"type nul > $filePath\\$name\\asm.halm\""
         ++
