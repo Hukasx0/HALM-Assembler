@@ -1,0 +1,31 @@
+-- remake of:
+--  https://youtu.be/hseFqtRpK0M?t=228
+-- in halm asm
+
+def textToDisplay = "Hello from string this time :>"
+
+[origin 0x7c00]
+
+mov ah,0x0e
+mov bx,Str
+
+label display
+mov al,[bx]
+cmp al,0
+je kill
+int 0x10
+inc bx
+jmp display
+
+
+label kill
+jmp $
+
+label Str
+addBytes = \textToDisplay,0
+fillBytes (- 512 2) 0x0
+addBytes = 0xaa55
+
+if $isUnix{
+    doSh = "qemu-system-x86_64 $filePath/$fileName.bin"
+}

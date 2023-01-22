@@ -21,7 +21,7 @@ data Operation = Mov Value Value | Interrupt Value | Inc Value | Dec Value | Cmp
                 | ShowV String Value | DefM String Value | DefMlM String [Operation] | UseMLM String
                 | FillB Value Value | Add Value Value | Sub Value Value | Neg Value | Xor Value Value
                 | DefLabel String | Incl String | If Value [Operation] | Push Value | Pop Value
-                | Shadow String | DefAs String String [Operation] | UseAs String String
+                | Shadow String | DefAs String String [Operation] | UseAs String String | SetOrigin Value
                 deriving(Eq,Show)
 
 letterDigitParser :: Parsec String () Char

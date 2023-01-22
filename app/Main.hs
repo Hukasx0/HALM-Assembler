@@ -11,8 +11,8 @@ import Values
 import InsParser
 import HLParser
 
-codeToIns :: [Operation] -> MacroTable -> MLMacroTable -> LabelTable -> [[Word8]]
-codeToIns code macroT mlm labelTbl= map (\c -> insToBin c macroT mlm labelTbl) code
+codeToIns :: [Operation] -> MacroTable -> MLMacroTable -> LabelTable -> Int -> [[Word8]]
+codeToIns code macroT mlm labelTbl org= map (\c -> insToBin c macroT mlm labelTbl org) code
 
 codeToIO :: [Operation] -> MacroTable -> MLMacroTable -> IO ()
 codeToIO code macroT mlm= mapM_ (\c -> insToIO c macroT mlm) code
@@ -27,7 +27,7 @@ finalParser = try movParser <|> try interruptParser <|> try incParser <|> try de
               <|> try useMLMParser <|> try fillBytesParser <|> try addParser 
               <|> try subParser <|> try negParser <|> try xorParser <|> try defLabelParser
               <|> try includeParser <|>try ifParser <|>try pushParser <|>try popParser
-              <|> try shadowParser <|> try defAsParser <|> useAsParser
+              <|> try shadowParser <|> try defAsParser <|>try useAsParser <|> setOriginParser
 
 replaceFpath :: String -> String -> String
 replaceFpath input rep = T.unpack $ T.intercalate (T.pack rep) (T.splitOn (T.pack "$filePath") (T.pack $ input))
@@ -56,14 +56,15 @@ main = do
           case parsed of
             Left err -> print err
             Right corr -> do
+                          let originVal = (sum $ (map (originFilter) corr))
                           let shadRep = concat $ map (\c -> replaceShadows c (concat $ map (\c -> shadowTable c (concat $ map shadowNames corr)) corr)) corr
                           let mTable = (concat $ map macroTable shadRep)
                           let mlmTable = (concat $ map multiLineMacroTable shadRep)
-                          let byteTuple = (zip (concat $ (map (\x -> byteFilter $ x) shadRep)) (reverse $ sumList $ concat $ (map (\op -> getCurrBytes op mTable mlmTable) shadRep)))
+                          let byteTuple = (zip (concat $ (map (\x -> byteFilter $ x) shadRep)) (reverse $ sumList $ concat $ (map (\op -> getCurrBytes op mTable mlmTable originVal) shadRep)))
                           let fillBDone = map (fillBFilter) byteTuple
                           let labelTable = concat $ map (getLabelTable) byteTuple
                           let final = replaceValues shadRep (concat $ (map clearData fillBDone))        
                           putStrLn ("Writing binary to "++fileName++".bin")
-                          B.writeFile (fileName++".bin") (B.pack $ concat $ (codeToIns final mTable mlmTable labelTable))
-                          print (concat $ (codeToIns final mTable mlmTable labelTable))
+                          B.writeFile (fileName++".bin") (B.pack $ concat $ (codeToIns final mTable mlmTable labelTable originVal))
+                          print (concat $ (codeToIns final mTable mlmTable labelTable originVal))
                           codeToIO shadRep mTable mlmTable
