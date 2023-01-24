@@ -37,6 +37,9 @@ pointerParser = Pointer <$> (many1 letter)
 derefParser :: Parser Value
 derefParser = Deref <$> (between (char '[') (char ']') (many1 letter))
 
+reverseParser :: Parser Value
+reverseParser = Rev <$> (string "reverse" >> spaces >> anyValParser)
+
 pureStringParser :: Parser String
 pureStringParser = between (char '"') (char '"') (many (noneOf "\""))
 
@@ -47,10 +50,10 @@ macroParser :: Parser Value
 macroParser = UseM <$> (char '\\' >> many1 letter)
 
 anyValParser :: Parser Value
-anyValParser = try registerParser <|> try hexParser <|> try octParser <|> try binParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|> derefParser 
+anyValParser =try reverseParser <|>try registerParser <|> try hexParser <|> try octParser <|> try binParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
 
 onlyValParser :: Parser Value
-onlyValParser = try hexParser <|> try intParser <|> try octParser <|> try binParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|> derefParser
+onlyValParser = try reverseParser <|>try hexParser <|> try intParser <|> try octParser <|> try binParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
 
 registerParser :: Parser Value
 registerParser = try registerParser8 <|> registerParser16
@@ -75,6 +78,9 @@ valToBin(Oct x) _= intToWord8List $ getOctFromStr x
 valToBin(Bin x) _ =  intToWord8List $ getBinFromStr $ x
 valToBin(Ch d) _ = [(fromIntegral $ (fromEnum d))]
 valToBin(Str e) _ = map (\x -> fromIntegral $ fromEnum x) e
+valToBin(Rev a) mT = reverse $ (valToBin a mT)
+valToBin(Ret _) _ = [0]
+valToBin(Retr _) _ = [0]
 valToBin(Math operator a b) mT = mathInterpreter operator a b mT
 valToBin(UseM macro) mT = case  (lookup macro mT ) of
                         Just value -> valToBin value mT
