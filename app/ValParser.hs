@@ -2,6 +2,7 @@ module ValParser where
 
 import Text.Parsec
 import Text.Parsec.String
+import Data.List(sort)
 import Data.Word
 
 import Values
@@ -40,6 +41,15 @@ derefParser = Deref <$> (between (char '[') (char ']') (many1 letter))
 reverseParser :: Parser Value
 reverseParser = Rev <$> (string "reverse" >> spaces >> anyValParser)
 
+revManyParser :: Parser Value
+revManyParser = RevMany <$> (string "reverseMany" >> spaces >> (anyValParser `sepBy` (char ',') ))
+
+sortParser :: Parser Value
+sortParser = Sort <$> (string "sort" >> spaces >> anyValParser)
+
+sortManyParser :: Parser Value
+sortManyParser = SortMany <$> (string "sortMany" >> spaces >> (anyValParser `sepBy` (char ',') ))
+
 pureStringParser :: Parser String
 pureStringParser = between (char '"') (char '"') (many (noneOf "\""))
 
@@ -50,10 +60,10 @@ macroParser :: Parser Value
 macroParser = UseM <$> (char '\\' >> many1 letter)
 
 anyValParser :: Parser Value
-anyValParser =try reverseParser <|>try registerParser <|> try hexParser <|> try octParser <|> try binParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
+anyValParser =try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try registerParser <|> try hexParser <|> try octParser <|> try binParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
 
 onlyValParser :: Parser Value
-onlyValParser = try reverseParser <|>try hexParser <|> try intParser <|> try octParser <|> try binParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
+onlyValParser =try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try hexParser <|> try intParser <|> try octParser <|> try binParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
 
 registerParser :: Parser Value
 registerParser = try registerParser8 <|> registerParser16
@@ -79,6 +89,9 @@ valToBin(Bin x) _ =  intToWord8List $ getBinFromStr $ x
 valToBin(Ch d) _ = [(fromIntegral $ (fromEnum d))]
 valToBin(Str e) _ = map (\x -> fromIntegral $ fromEnum x) e
 valToBin(Rev a) mT = reverse $ (valToBin a mT)
+valToBin(RevMany a) mT =reverse $ concat $ map (\v -> valToBin v mT) a
+valToBin(Sort a) mT = sort $ (valToBin a mT)
+valToBin(SortMany a) mT =sort $ concat $ map (\v -> valToBin v mT) a
 valToBin(Ret _) _ = [0]
 valToBin(Retr _) _ = [0]
 valToBin(Math operator a b) mT = mathInterpreter operator a b mT

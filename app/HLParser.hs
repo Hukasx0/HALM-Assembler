@@ -38,7 +38,7 @@ dispAParser = DispA <$> (string "Disp" >> many1 space >> anyValParser)
 showVParser :: Parser Operation
 showVParser = ShowV <$> (string "show" >> many1 space >> (try (string "str") <|> try (string "chars") <|> try (string "int")<|> try (string "hexArr")
                     <|> try (string "hex") <|>try (string "octArr") <|> try (string "oct") <|> try (string "binArr") <|> try (string "bin") <|> try (string "bool") 
-                    )) <*> (many1 space >> anyValParser)
+                    )) <*> (many1 space >> (anyValParser `sepBy` (char ',') ))
 
 lineCommentParser :: Parser Operation
 lineCommentParser = Comment <$> (string "--" >> many (noneOf "\n"))
@@ -88,17 +88,17 @@ insToIO :: Operation -> MacroTable -> MLMacroTable -> IO ()
 insToIO (DoSh command) _ _= void $ system command
 insToIO (DispA val) _ _= print $ val
 insToIO (Disp val) mT _= print (valToBin val mT)
-insToIO (ShowV "str" val) mt _ = putStrLn $ word8ListToString $ (valToBin val mt)
-insToIO (ShowV "chars" val) mT _ = mapM_ (\i -> putStr $ "['" ++ (word8ListToString $ [i]) ++ "']") (valToBin val mT) >> putStrLn ""
-insToIO (ShowV "int" val) mT _ = putStrLn $ show $ word8ListToInt $ (valToBin val mT)
-insToIO (ShowV "hexArr" val) mT _ = mapM_ (\i -> putStr $ "[0x" ++ (intToHex $ word8ListToInt $ [i]) ++ "]") (reverse $ valToBin val mT) >> putStrLn ""
-insToIO (ShowV "hex" val) mT _ = putStrLn $ intToHex $ word8ListToInt $ (valToBin val mT)
-insToIO (ShowV "oct" val) mT _ = putStrLn $ intToOct $ word8ListToInt $ (valToBin val mT)
-insToIO (ShowV "octArr" val) mT _ = mapM_ (\i -> putStr $ "[0o" ++ (intToOct $ word8ListToInt $ [i]) ++ "]") (reverse $ valToBin val mT) >> putStrLn ""
-insToIO (ShowV "bin" val) mT _ = putStrLn $ intToBin $ word8ListToInt $ (valToBin val mT)
-insToIO (ShowV "binArr" val) mT _ = mapM_ (\i -> putStr $ "[0b" ++ (intToBin $ word8ListToInt $ [i]) ++ "]") (reverse $ valToBin val mT) >> putStrLn ""
-insToIO (ShowV "bool" val) mT _ |(word8ListToInt $ (valToBin val mT))==1=putStrLn $ "True"
-                                 |(word8ListToInt $ (valToBin val mT))==0=putStrLn $ "False"
+insToIO (ShowV "str" val) mt _ =( mapM_ (\v -> putStr $ word8ListToString $ (valToBin v mt)) val ) >>= \_ -> putStrLn $ ""
+insToIO (ShowV "chars" val) mT _ =mapM_ (\v -> mapM_ (\i -> putStr $ "['" ++ (word8ListToString $ [i]) ++ "']") (valToBin v mT) >> putStrLn "") val
+insToIO (ShowV "int" val) mT _ =(mapM_ (\v -> putStr $ show $ word8ListToInt $ (valToBin v mT)) val) >>= \_ -> putStrLn $ ""
+insToIO (ShowV "hexArr" val) mT _ =mapM_ (\v -> mapM_ (\i -> putStr $ "[0x" ++ (intToHex $ word8ListToInt $ [i]) ++ "]") (reverse $ valToBin v mT) >> putStrLn "") val
+insToIO (ShowV "hex" val) mT _ =(mapM_ (\v -> putStr $ intToHex $ word8ListToInt $ (valToBin v mT)) val) >>= \_ -> putStrLn $ ""
+insToIO (ShowV "oct" val) mT _ =(mapM_ (\v -> putStrLn $ intToOct $ word8ListToInt $ (valToBin v mT)) val) >>= \_ -> putStrLn $ ""
+insToIO (ShowV "octArr" val) mT _ =mapM_ (\v -> mapM_ (\i -> putStr $ "[0o" ++ (intToOct $ word8ListToInt $ [i]) ++ "]") (reverse $ valToBin v mT) >> putStrLn "") val
+insToIO (ShowV "bin" val) mT _ =(mapM_ (\v -> putStr $ intToBin $ word8ListToInt $ (valToBin v mT)) val) >>= \_ -> putStrLn $ ""
+insToIO (ShowV "binArr" val) mT _ =mapM_ (\v -> mapM_ (\i -> putStr $ "[0b" ++ (intToBin $ word8ListToInt $ [i]) ++ "]") (reverse $ valToBin v mT) >> putStrLn "") val
+insToIO (ShowV "bool" val) mT _ |(word8ListToInt $ (valToBin (val!!0) mT))==1=putStrLn $ "True"
+                                 |(word8ListToInt $ (valToBin (val!!0) mT))==0=putStrLn $ "False"
                                  |otherwise=putStrLn $ "Not a Boolean"
 insToIO (UseMLM name) mT mlmtable= case  (lookup name mlmtable ) of
                         Just value -> mapM_ (\operation -> insToIO operation mT mlmtable) value

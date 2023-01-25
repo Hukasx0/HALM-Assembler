@@ -13,13 +13,13 @@ type ShadowTable = [(String,String,[Operation])]
 
 data Value = Register8 String | Register16 String | Int String | Hex String | Oct String | Bin String | Ch Char | Str String 
              | Math String Value Value | UseM String | Pointer String | Deref Label | Ret Operation | Retr Operation
-             | Rev Value
+             | Rev Value | Sort Value | SortMany [Value] | RevMany [Value]
                 deriving(Eq,Show)
 
 data Operation = Mov Value Value | Interrupt Value | Inc Value | Dec Value | Cmp Value Value | Jmp Label Int 
                 | Je Label Int | Jne Label Int | Jg Label Int | Jge Label Int | Jl Label Int | Jle Label Int
                 | AdBy [Value] | DoSh String | Comment String | Disp Value | DispA Value 
-                | ShowV String Value | DefM String Value | DefMlM String [Operation] | UseMLM String
+                | ShowV String [Value] | DefM String Value | DefMlM String [Operation] | UseMLM String
                 | FillB Value Value | Add Value Value | Sub Value Value | Neg Value | Xor Value Value
                 | DefLabel String | Incl String | If Value [Operation] | Push Value | Pop Value
                 | Shadow String | DefAs String String [Operation] | UseAs String String | SetOrigin Value
