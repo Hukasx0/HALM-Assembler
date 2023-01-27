@@ -8,12 +8,14 @@ import Data.Char
 type Label = String
 type MacroTable = [(String,Value)]
 type MLMacroTable = [(String,[Operation])]
+type MLMPacroTable = [(String,([String],[Operation]))]
+type ParamTable = [([String],[Operation])]
 type LabelTable = [(String,Int)]
 type ShadowTable = [(String,String,[Operation])]
 
 data Value = Register8 String | Register16 String | Int String | Hex String | Oct String | Bin String | Ch Char | Str String 
              | Math String Value Value | UseM String | Pointer String | Deref Label | Ret Operation | Retr Operation
-             | Rev Value | Sort Value | SortMany [Value] | RevMany [Value]
+             | Rev Value | Sort Value | SortMany [Value] | RevMany [Value] | Parameter String
                 deriving(Eq,Show)
 
 data Operation = Mov Value Value | Interrupt Value | Inc Value | Dec Value | Cmp Value Value | Jmp Label Int 
@@ -23,6 +25,7 @@ data Operation = Mov Value Value | Interrupt Value | Inc Value | Dec Value | Cmp
                 | FillB Value Value | Add Value Value | Sub Value Value | Neg Value | Xor Value Value
                 | DefLabel String | Incl String | If Value [Operation] | Push Value | Pop Value
                 | Shadow String | DefAs String String [Operation] | UseAs String String | SetOrigin Value
+                | DefMlMP String [String] [Operation] | UseMLMP String [Value]
                 deriving(Eq,Show)
 
 letterDigitParser :: Parsec String () Char

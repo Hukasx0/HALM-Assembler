@@ -50,6 +50,9 @@ sortParser = Sort <$> (string "sort" >> spaces >> anyValParser)
 sortManyParser :: Parser Value
 sortManyParser = SortMany <$> (string "sortMany" >> spaces >> (anyValParser `sepBy` (char ',') ))
 
+paramParser :: Parser Value
+paramParser = Parameter <$> (char '\'' >> many1 letter)
+
 pureStringParser :: Parser String
 pureStringParser = between (char '"') (char '"') (many (noneOf "\""))
 
@@ -60,10 +63,10 @@ macroParser :: Parser Value
 macroParser = UseM <$> (char '\\' >> many1 letter)
 
 anyValParser :: Parser Value
-anyValParser =try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try registerParser <|> try hexParser <|> try octParser <|> try binParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
+anyValParser =try paramParser <|> try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try registerParser <|> try hexParser <|> try octParser <|> try binParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
 
 onlyValParser :: Parser Value
-onlyValParser =try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try hexParser <|> try intParser <|> try octParser <|> try binParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
+onlyValParser =try paramParser <|> try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try hexParser <|> try intParser <|> try octParser <|> try binParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
 
 registerParser :: Parser Value
 registerParser = try registerParser8 <|> registerParser16
@@ -125,3 +128,15 @@ getLabelAddr :: String -> LabelTable -> [Word8]
 getLabelAddr lblName lT = case  (lookup lblName lT ) of
                         Just value -> intToWord8List $ value
                         Nothing -> [0] --error $ "This label doesn't exist!"
+
+valOrParam :: Value -> [(String,Value)] -> MacroTable -> [Word8]
+valOrParam (Math a (Parameter b) c) mp mt= valOrParam (Math a (Str (word8ListToString $ (case (lookup b mp) of
+                                Just value -> (valToBin value mt)
+                                Nothing -> error $ "Parameter value not set!"))) c) mp mt
+valOrParam (Math a c (Parameter b)) mp mt= valOrParam (Math a (Str (word8ListToString $ (case (lookup b mp) of
+                                Just value -> (valToBin value mt)
+                                Nothing -> error $ "Parameter value not set!"))) c) mp mt
+valOrParam (Parameter a) mp mt=  case (lookup a mp) of
+                                Just value -> (valToBin value mt)
+                                Nothing -> error $ "Parameter value not set!"
+valOrParam a _ _= (valToBin a [])

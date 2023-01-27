@@ -14,8 +14,8 @@ import HLParser
 codeToIns :: [Operation] -> MacroTable -> MLMacroTable -> LabelTable -> Int -> [[Word8]]
 codeToIns code macroT mlm labelTbl org= map (\c -> insToBin c macroT mlm labelTbl org) code
 
-codeToIO :: [Operation] -> MacroTable -> MLMacroTable -> IO ()
-codeToIO code macroT mlm= mapM_ (\c -> insToIO c macroT mlm) code
+codeToIO :: [Operation] -> MacroTable -> MLMacroTable -> MLMPacroTable -> IO ()
+codeToIO code macroT mlm mlmp= mapM_ (\c -> insToIO c macroT mlm mlmp) code
 
 finalParser :: Parser Operation
 finalParser = try movParser <|> try interruptParser <|> try incParser <|> try decParser 
@@ -23,8 +23,8 @@ finalParser = try movParser <|> try interruptParser <|> try incParser <|> try de
               <|> try jgParser <|> try jgeParser <|> try jlParser <|> try jleParser
               <|> try addByParser <|> try doShParser <|> try lineCommentParser 
               <|> try commentParser <|>try dispParser <|>try dispAParser
-              <|> try showVParser <|> try defMacroParser <|> try defMlMacroParser 
-              <|> try useMLMParser <|> try fillBytesParser <|> try addParser 
+              <|> try showVParser <|> try defMacroParser<|>try defMlMPacroParser<|> try defMlMacroParser 
+              <|>try useMLMPParser<|> try useMLMParser <|> try fillBytesParser <|> try addParser 
               <|> try subParser <|> try negParser <|> try xorParser <|> try defLabelParser
               <|> try includeParser <|>try ifParser <|>try pushParser <|>try popParser
               <|> try shadowParser <|> try defAsParser <|>try useAsParser <|> setOriginParser
@@ -60,6 +60,7 @@ main = do
                           let shadRep = concat $ map (\c -> replaceShadows c (concat $ map (\c -> shadowTable c (concat $ map shadowNames corr)) corr)) corr
                           let mTable = (concat $ map macroTable shadRep)
                           let mlmTable = (concat $ map multiLineMacroTable shadRep)
+                          let mlmpTable = (concat $ map multiLineMacroParameterTable shadRep)
                           let byteTuple = (zip (concat $ (map (\x -> byteFilter $ x) shadRep)) (reverse $ sumList $ concat $ (map (\op -> getCurrBytes op mTable mlmTable originVal) shadRep)))
                           let fillBDone = map (fillBFilter) byteTuple
                           let labelTable = concat $ map (getLabelTable) byteTuple
@@ -67,4 +68,4 @@ main = do
                           putStrLn ("Writing binary to "++fileName++".bin")
                           B.writeFile (fileName++".bin") (B.pack $ concat $ (codeToIns final mTable mlmTable labelTable originVal))
                           print (concat $ (codeToIns final mTable mlmTable labelTable originVal))
-                          codeToIO shadRep mTable mlmTable
+                          codeToIO shadRep mTable mlmTable mlmpTable

@@ -70,6 +70,9 @@ addByParser = AdBy <$> (string "addBytes" >> spaces >> char '=' >> spaces >> (on
 useMLMParser :: Parser Operation
 useMLMParser = UseMLM <$> (string "use" >> many1 space >> many1 letter)
 
+useMLMPParser :: Parser Operation
+useMLMPParser = UseMLMP <$> (string "use" >> many1 space >> many1 letter) <*> (spaces >> char '(' >> spaces >> (onlyValParser `sepBy` (char ',') ) <* spaces <* char ')')
+
 fillBytesParser :: Parser Operation
 fillBytesParser = FillB <$> (string "fillBytes" >> many1 space >> onlyValParser) <*> (many1 space >> onlyValParser)
 

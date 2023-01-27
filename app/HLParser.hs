@@ -81,40 +81,53 @@ retInsParser = try doShParser
 defMlMacroParser :: Parser Operation
 defMlMacroParser = DefMlM <$> (string "def" >> many1 space >> many1 letter) <*> (spaces >> char '=' >> spaces >> char '{' >> spaces >> many1 insParser <* spaces <* char '}')
 
+defMlMPacroParser :: Parser Operation
+defMlMPacroParser = DefMlMP <$> (string "def" >> many1 space >> many1 letter) <*> (spaces >> char '(' >> spaces >> (many1 letter `sepBy` (char ',')) <* spaces <* char ')') <*> (spaces >> char '=' >> spaces >> char '{' >> spaces >> many1 insParser <* spaces <* char '}')
+
 ifParser :: Parser Operation
 ifParser = If <$> (string "if" >> spaces >> (try onlyValParser <|>try retParser <|> retrParser)) <*> (spaces >> char '{' >> spaces >> many1 insParser <* spaces <* char '}')
 
-insToIO :: Operation -> MacroTable -> MLMacroTable -> IO ()
-insToIO (DoSh command) _ _= void $ system command
-insToIO (DispA val) _ _= print $ val
-insToIO (Disp val) mT _= print (valToBin val mT)
-insToIO (ShowV "str" val) mt _ =( mapM_ (\v -> putStr $ word8ListToString $ (valToBin v mt)) val ) >>= \_ -> putStrLn $ ""
-insToIO (ShowV "chars" val) mT _ =mapM_ (\v -> mapM_ (\i -> putStr $ "['" ++ (word8ListToString $ [i]) ++ "']") (valToBin v mT) >> putStrLn "") val
-insToIO (ShowV "int" val) mT _ =(mapM_ (\v -> putStr $ show $ word8ListToInt $ (valToBin v mT)) val) >>= \_ -> putStrLn $ ""
-insToIO (ShowV "hexArr" val) mT _ =mapM_ (\v -> mapM_ (\i -> putStr $ "[0x" ++ (intToHex $ word8ListToInt $ [i]) ++ "]") (reverse $ valToBin v mT) >> putStrLn "") val
-insToIO (ShowV "hex" val) mT _ =(mapM_ (\v -> putStr $ intToHex $ word8ListToInt $ (valToBin v mT)) val) >>= \_ -> putStrLn $ ""
-insToIO (ShowV "oct" val) mT _ =(mapM_ (\v -> putStrLn $ intToOct $ word8ListToInt $ (valToBin v mT)) val) >>= \_ -> putStrLn $ ""
-insToIO (ShowV "octArr" val) mT _ =mapM_ (\v -> mapM_ (\i -> putStr $ "[0o" ++ (intToOct $ word8ListToInt $ [i]) ++ "]") (reverse $ valToBin v mT) >> putStrLn "") val
-insToIO (ShowV "bin" val) mT _ =(mapM_ (\v -> putStr $ intToBin $ word8ListToInt $ (valToBin v mT)) val) >>= \_ -> putStrLn $ ""
-insToIO (ShowV "binArr" val) mT _ =mapM_ (\v -> mapM_ (\i -> putStr $ "[0b" ++ (intToBin $ word8ListToInt $ [i]) ++ "]") (reverse $ valToBin v mT) >> putStrLn "") val
-insToIO (ShowV "bool" val) mT _ |(word8ListToInt $ (valToBin (val!!0) mT))==1=putStrLn $ "True"
+insToIO :: Operation -> MacroTable -> MLMacroTable -> MLMPacroTable -> IO ()
+insToIO (DoSh command) _ _ _= void $ system command
+insToIO (DispA val) _ _ _= print $ val
+insToIO (Disp val) mT _ _= print (valToBin val mT)
+insToIO (ShowV "str" val) mt _ _=( mapM_ (\v -> putStr $ word8ListToString $ (valToBin v mt)) val ) >>= \_ -> putStrLn $ ""
+insToIO (ShowV "chars" val) mT _ _=mapM_ (\v -> mapM_ (\i -> putStr $ "['" ++ (word8ListToString $ [i]) ++ "']") (valToBin v mT) >> putStrLn "") val
+insToIO (ShowV "int" val) mT _ _=(mapM_ (\v -> putStr $ show $ word8ListToInt $ (valToBin v mT)) val) >>= \_ -> putStrLn $ ""
+insToIO (ShowV "hexArr" val) mT _ _=mapM_ (\v -> mapM_ (\i -> putStr $ "[0x" ++ (intToHex $ word8ListToInt $ [i]) ++ "]") (reverse $ valToBin v mT) >> putStrLn "") val
+insToIO (ShowV "hex" val) mT _ _=(mapM_ (\v -> putStr $ intToHex $ word8ListToInt $ (valToBin v mT)) val) >>= \_ -> putStrLn $ ""
+insToIO (ShowV "oct" val) mT _ _=(mapM_ (\v -> putStrLn $ intToOct $ word8ListToInt $ (valToBin v mT)) val) >>= \_ -> putStrLn $ ""
+insToIO (ShowV "octArr" val) mT _ _=mapM_ (\v -> mapM_ (\i -> putStr $ "[0o" ++ (intToOct $ word8ListToInt $ [i]) ++ "]") (reverse $ valToBin v mT) >> putStrLn "") val
+insToIO (ShowV "bin" val) mT _ _=(mapM_ (\v -> putStr $ intToBin $ word8ListToInt $ (valToBin v mT)) val) >>= \_ -> putStrLn $ ""
+insToIO (ShowV "binArr" val) mT _ _=mapM_ (\v -> mapM_ (\i -> putStr $ "[0b" ++ (intToBin $ word8ListToInt $ [i]) ++ "]") (reverse $ valToBin v mT) >> putStrLn "") val
+insToIO (ShowV "bool" val) mT _ _|(word8ListToInt $ (valToBin (val!!0) mT))==1=putStrLn $ "True"
                                  |(word8ListToInt $ (valToBin (val!!0) mT))==0=putStrLn $ "False"
                                  |otherwise=putStrLn $ "Not a Boolean"
-insToIO (UseMLM name) mT mlmtable= case  (lookup name mlmtable ) of
-                        Just value -> mapM_ (\operation -> insToIO operation mT mlmtable) value
+insToIO (UseMLM name) mT mlmtable mlmp= case  (lookup name mlmtable ) of
+                        Just value -> mapM_ (\operation -> insToIO operation mT mlmtable mlmp) value
                         Nothing -> error $ "This macro doesn't exist!"
-insToIO (If (Ret (DoSh command)) operations) mT mlmtable 
+
+insToIO (UseMLMP name vals) mT mlmtable mlmp= case  (lookup name mlmp ) of
+                        Just value -> mapM_ (\sv -> insWparamsToIO sv  mT mlmtable (zip (fst $ value) vals) ) (snd $ value)
+                        Nothing -> error $ "This macro doesn't exist!"
+
+insToIO (If (Ret (DoSh command)) operations) mT mlmtable mlmp
                 = system command >>= \exitCode -> case exitCode of
-                                                    ExitSuccess -> mapM_ (\op -> insToIO op mT mlmtable) operations
+                                                    ExitSuccess -> mapM_ (\op -> insToIO op mT mlmtable mlmp) operations
                                                     ExitFailure n -> pure () --putStrLn $ "Command '"++command++"' failed with exit code: "++(show $ n)
-insToIO (If (Retr (DoSh command)) operations) mT mlmtable 
+insToIO (If (Retr (DoSh command)) operations) mT mlmtable mlmp
                 = system command >>= \exitCode -> case exitCode of
                                                     ExitSuccess -> pure ()
-                                                    ExitFailure n -> mapM_ (\op -> insToIO op mT mlmtable) operations --putStrLn $ "Command '"++command++"' failed with exit code: "++(show $ n)
-insToIO (If statement operations) mT mlmtable |(word8ListToInt $ (valToBin statement mT))==1=mapM_ (\op -> insToIO op mT mlmtable) operations
-                                              |(word8ListToInt $ (valToBin statement mT))==0=pure ()
-                                              |otherwise=error $ "Wrong value in if statement"
-insToIO _ _ _= pure ()
+                                                    ExitFailure n -> mapM_ (\op -> insToIO op mT mlmtable mlmp) operations --putStrLn $ "Command '"++command++"' failed with exit code: "++(show $ n)
+insToIO (If statement operations) mT mlmtable mlmp |(word8ListToInt $ (valToBin statement mT))==1=mapM_ (\op -> insToIO op mT mlmtable mlmp) operations
+                                                   |(word8ListToInt $ (valToBin statement mT))==0=pure ()
+                                                   |otherwise=error $ "Wrong value in if statement"
+insToIO _ _ _ _= pure ()
+
+insWparamsToIO :: Operation -> MacroTable -> MLMacroTable -> [(String,Value)] -> IO ()
+insWparamsToIO (ShowV a b) mt mlm mp= (insToIO (ShowV a [(Str (word8ListToString $ concat $map (\x -> valOrParam x mp mt) b))] ) mt mlm [])
+insWparamsToIO (If a operations) mt mlm mp= (insToIO (If (Str (word8ListToString $ concat $map (\x -> valOrParam x mp mt) [a]) ) operations) mt mlm [])
+insWparamsToIO a b c d = insToIO a b c []
 
 macroTable :: Operation -> MacroTable
 macroTable (DefM name val)= [(name,val)]
@@ -123,6 +136,10 @@ macroTable _ =[]
 multiLineMacroTable :: Operation -> MLMacroTable
 multiLineMacroTable (DefMlM name mlm) = [(name,mlm)]
 multiLineMacroTable _ = []
+
+multiLineMacroParameterTable :: Operation -> MLMPacroTable
+multiLineMacroParameterTable (DefMlMP name params mlm) = [(name,(params,mlm))]
+multiLineMacroParameterTable _ = []
 
 shadowNames :: Operation -> [String]
 shadowNames (Shadow name) = [name]
