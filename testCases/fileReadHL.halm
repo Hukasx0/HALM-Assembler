@@ -1,0 +1,33 @@
+def readSelf(type) = {
+    if(== 'type "hex"){
+        show hexArr reverse (readF = "$filePath/$fileName.bin" )
+    }
+    if(== 'type "oct"){
+        show octArr reverse (readF = "$filePath/$fileName.bin" )
+    }
+    if(== 'type "bin"){
+        show binArr reverse (readF = "$filePath/$fileName.bin" )
+    }
+    if(== 'type "int"){
+        show intArr reverse (readF = "$filePath/$fileName.bin" )
+    }
+    if(== 'type "str"){
+        show str (readF = "$filePath/$fileName.bin" )
+    }
+    if(== 'type "chars"){
+        show chars (readF = "$filePath/$fileName.bin" )
+    }
+    if (== 'type "size"){
+        show int count (readF = "$filePath/$fileName.bin")
+    }
+}
+
+mov al,123
+fillBytes 10 0xa
+
+use readSelf("hex")
+use readSelf("int")
+use readSelf("size")
+
+-- NOTE: This macro is builtin, you can use this in every file
+-- use readSelf(<"hex" or "oct" or "bin" or "int" or "str" or "chars" or "size">)

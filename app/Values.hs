@@ -15,7 +15,7 @@ type ShadowTable = [(String,String,[Operation])]
 
 data Value = Register8 String | Register16 String | Int String | Hex String | Oct String | Bin String | Ch Char | Str String 
              | Math String Value Value | UseM String | Pointer String | Deref Label | Ret Operation | Retr Operation
-             | Rev Value | Sort Value | SortMany [Value] | RevMany [Value] | Parameter String
+             | Rev Value | Sort Value | SortMany [Value] | RevMany [Value] | Parameter String | FileCon String | Count Value
                 deriving(Eq,Show)
 
 data Operation = Mov Value Value | Interrupt Value | Inc Value | Dec Value | Cmp Value Value | Jmp Label Int 
@@ -74,5 +74,14 @@ initLib = "def as builtIn init = {\nshow str \"Initializing with name $name\"\ni
         ++
           "show str \"      hiLevel.halm\"\n}\n}\n"
 
+readSelfLib :: String
+readSelfLib = "def readSelf(type) = {\nif(== 'type \"hex\"){\nshow hexArr reverse (readF = \"$filePath/$fileName.bin\")\n}\nif(== 'type \"oct\"){\nshow octArr reverse (readF = \"$filePath/$fileName.bin\")"
+            ++
+               "\n}\nif(== 'type \"bin\"){\nshow binArr reverse (readF = \"$filePath/$fileName.bin\")\n}\nif(== 'type \"int\"){\nshow intArr reverse (readF = \"$filePath/$fileName.bin\")\n}\nif(== 'type \"str\"){"
+            ++
+               "show str (readF = \"$filePath/$fileName.bin\")\n}\nif(== 'type \"char\"){\nshow chars (readF = \"$filePath/$fileName.bin\")\n}\nif (== 'type \"size\"){\nshow int count (readF = \"$filePath/$fileName.bin\")"
+            ++
+               "\n}\n}\n"
+
 libList :: String
-libList = "shadow def builtIn\n"++initLib
+libList = "shadow def builtIn\n"++initLib++readSelfLib

@@ -47,12 +47,10 @@ isUnixRep input= T.unpack $ T.intercalate (T.pack $ show $ isUnix) (T.splitOn (T
 main :: IO ()
 main = do
           fileName <- head <$> getArgs
-          fContent <- (includeFiles (getFileName $ fileName) (getDir $ fileName))
-          putStrLn $ ("input:\n") 
+          fContent <- (includeFiles (getFileName $ fileName) (getDir $ fileName)) 
           let content = (isUnixRep $ isWinRep $ (replacefNameNoExt (replacefName (replaceFpath (libList ++ fContent) (getDir $ fileName)) (getFileName $ fileName))) (getFileNameWithoutExt $ fileName))
-          putStrLn $ content
+          --putStrLn $ content
           let parsed = parse (spaces >> many (finalParser <* many1 space) <* eof) fileName content
-          putStrLn $ "output:"
           case parsed of
             Left err -> print err
             Right corr -> do
@@ -66,6 +64,7 @@ main = do
                           let labelTable = concat $ map (getLabelTable) byteTuple
                           let final = replaceValues shadRep (concat $ (map clearData fillBDone))        
                           putStrLn ("Writing binary to "++fileName++".bin")
+                          putStrLn $ "IO output:"
                           B.writeFile (fileName++".bin") (B.pack $ concat $ (codeToIns final mTable mlmTable labelTable originVal))
-                          print (concat $ (codeToIns final mTable mlmTable labelTable originVal))
+                         -- print (concat $ (codeToIns final mTable mlmTable labelTable originVal))
                           codeToIO shadRep mTable mlmTable mlmpTable

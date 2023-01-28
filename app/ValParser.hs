@@ -39,16 +39,19 @@ derefParser :: Parser Value
 derefParser = Deref <$> (between (char '[') (char ']') (many1 letter))
 
 reverseParser :: Parser Value
-reverseParser = Rev <$> (string "reverse" >> spaces >> anyValParser)
+reverseParser = Rev <$> (string "reverse" >> spaces >> (try anyValParser <|> fileConParser))
 
 revManyParser :: Parser Value
 revManyParser = RevMany <$> (string "reverseMany" >> spaces >> (anyValParser `sepBy` (char ',') ))
 
 sortParser :: Parser Value
-sortParser = Sort <$> (string "sort" >> spaces >> anyValParser)
+sortParser = Sort <$> (string "sort" >> spaces >> (try anyValParser <|> fileConParser))
 
 sortManyParser :: Parser Value
 sortManyParser = SortMany <$> (string "sortMany" >> spaces >> (anyValParser `sepBy` (char ',') ))
+
+countParser :: Parser Value
+countParser = Count <$> (string "count" >> spaces >> (try anyValParser <|> fileConParser))
 
 paramParser :: Parser Value
 paramParser = Parameter <$> (char '\'' >> many1 letter)
@@ -62,11 +65,14 @@ mathParser = Math <$> (char '(' >> spaces >> many1 (noneOf " \n\r")) <*> (many1 
 macroParser :: Parser Value
 macroParser = UseM <$> (char '\\' >> many1 letter)
 
+fileConParser :: Parser Value
+fileConParser = FileCon <$> (char '(' >> spaces >> string "readF" >> spaces >> char '=' >> spaces >> pureStringParser <* spaces <* char ')')
+
 anyValParser :: Parser Value
-anyValParser =try paramParser <|> try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try registerParser <|> try hexParser <|> try octParser <|> try binParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
+anyValParser =try paramParser <|>try countParser <|> try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try registerParser <|> try hexParser <|> try octParser <|> try binParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
 
 onlyValParser :: Parser Value
-onlyValParser =try paramParser <|> try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try hexParser <|> try intParser <|> try octParser <|> try binParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
+onlyValParser =try paramParser <|>try countParser <|> try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try hexParser <|> try intParser <|> try octParser <|> try binParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
 
 registerParser :: Parser Value
 registerParser = try registerParser8 <|> registerParser16
@@ -95,6 +101,7 @@ valToBin(Rev a) mT = reverse $ (valToBin a mT)
 valToBin(RevMany a) mT =reverse $ concat $ map (\v -> valToBin v mT) a
 valToBin(Sort a) mT = sort $ (valToBin a mT)
 valToBin(SortMany a) mT =sort $ concat $ map (\v -> valToBin v mT) a
+valToBin(Count a) mT = intToWord8List $ length $ (valToBin a mT)
 valToBin(Ret _) _ = [0]
 valToBin(Retr _) _ = [0]
 valToBin(Math operator a b) mT = mathInterpreter operator a b mT
@@ -133,10 +140,12 @@ valOrParam :: Value -> [(String,Value)] -> MacroTable -> [Word8]
 valOrParam (Math a (Parameter b) c) mp mt= valOrParam (Math a (Str (word8ListToString $ (case (lookup b mp) of
                                 Just value -> (valToBin value mt)
                                 Nothing -> error $ "Parameter value not set!"))) c) mp mt
-valOrParam (Math a c (Parameter b)) mp mt= valOrParam (Math a (Str (word8ListToString $ (case (lookup b mp) of
+valOrParam (Math a c (Parameter b)) mp mt= valOrParam (Math a c (Str (word8ListToString $ (case (lookup b mp) of
                                 Just value -> (valToBin value mt)
-                                Nothing -> error $ "Parameter value not set!"))) c) mp mt
+                                Nothing -> error $ "Parameter value not set!")))) mp mt
 valOrParam (Parameter a) mp mt=  case (lookup a mp) of
                                 Just value -> (valToBin value mt)
                                 Nothing -> error $ "Parameter value not set!"
+valOrParam (Rev a) mp mt =  reverse $ (valOrParam a mp mt)
+valOrParam (Sort a) mp mt =  sort $ (valOrParam a mp mt)
 valOrParam a _ _= (valToBin a [])
