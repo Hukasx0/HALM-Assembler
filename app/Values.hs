@@ -95,5 +95,8 @@ readSelfLib = "def readSelf(type) = {\nif(== 'type \"hex\"){\nshow hexArr revers
             ++
                "\n}\n}\n"
 
+asciiDefinitions :: String
+asciiDefinitions = "def asciiLow = 33\ndef asciiHigh = 126\ndef asciiSpace = 10\ndef letterLow = 65\ndef letterHigh = 122\n"
+
 libList :: String
-libList = "shadow def builtIn\n"++initLib++readSelfLib
+libList = "shadow def builtIn\n"++initLib++readSelfLib++asciiDefinitions
