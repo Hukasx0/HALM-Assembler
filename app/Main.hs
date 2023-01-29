@@ -22,12 +22,12 @@ finalParser = try movParser <|> try interruptParser <|> try incParser <|> try de
               <|> try cmpParser <|> try jmpParser <|> try jeParser <|> try jneParser 
               <|> try jgParser <|> try jgeParser <|> try jlParser <|> try jleParser
               <|> try addByParser <|> try doShParser <|> try lineCommentParser 
-              <|> try commentParser <|>try dispParser <|>try dispAParser
+              <|> try commentParser <|>try dispParser <|>try dispAParser <|>try useAsParser
               <|> try showVParser <|> try defMacroParser<|>try defMlMPacroParser<|> try defMlMacroParser 
               <|>try useMLMPParser<|> try useMLMParser <|> try fillBytesParser <|> try addParser 
               <|> try subParser <|> try negParser <|> try xorParser <|> try defLabelParser
               <|> try includeParser <|>try ifParser <|>try pushParser <|>try popParser
-              <|> try shadowParser <|> try defAsParser <|>try useAsParser <|> setOriginParser
+              <|> try shadowParser <|> try defAsParser <|>try setOriginParser <|> foreachParser
 
 replaceFpath :: String -> String -> String
 replaceFpath input rep = T.unpack $ T.intercalate (T.pack rep) (T.splitOn (T.pack "$filePath") (T.pack $ input))
@@ -48,7 +48,7 @@ main :: IO ()
 main = do
           fileName <- head <$> getArgs
           fContent <- (includeFiles (getFileName $ fileName) (getDir $ fileName)) 
-          let content = (isUnixRep $ isWinRep $ (replacefNameNoExt (replacefName (replaceFpath (libList ++ fContent) (getDir $ fileName)) (getFileName $ fileName))) (getFileNameWithoutExt $ fileName))
+          let content = (isUnixRep $ isWinRep $ (replacefNameNoExt (replacefName (replaceFpath (fContent ++ libList) (getDir $ fileName)) (getFileName $ fileName))) (getFileNameWithoutExt $ fileName))
           --putStrLn $ content
           let parsed = parse (spaces >> many (finalParser <* many1 space) <* eof) fileName content
           case parsed of

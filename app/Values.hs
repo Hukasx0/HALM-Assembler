@@ -16,6 +16,7 @@ type ShadowTable = [(String,String,[Operation])]
 data Value = Register8 String | Register16 String | Int String | Hex String | Oct String | Bin String | Ch Char | Str String 
              | Math String Value Value | UseM String | Pointer String | Deref Label | Ret Operation | Retr Operation
              | Rev Value | Sort Value | SortMany [Value] | RevMany [Value] | Parameter String | FileCon String | Count Value
+             | Filter Value [Value]
                 deriving(Eq,Show)
 
 data Operation = Mov Value Value | Interrupt Value | Inc Value | Dec Value | Cmp Value Value | Jmp Label Int 
@@ -25,7 +26,7 @@ data Operation = Mov Value Value | Interrupt Value | Inc Value | Dec Value | Cmp
                 | FillB Value Value | Add Value Value | Sub Value Value | Neg Value | Xor Value Value
                 | DefLabel String | Incl String | If Value [Operation] | Push Value | Pop Value
                 | Shadow String | DefAs String String [Operation] | UseAs String String | SetOrigin Value
-                | DefMlMP String [String] [Operation] | UseMLMP String [Value]
+                | DefMlMP String [String] [Operation] | UseMLMP String [Value] | Foreach String [Value] [Operation]
                 deriving(Eq,Show)
 
 letterDigitParser :: Parsec String () Char
@@ -45,6 +46,17 @@ word8ListToInt w8s = sum $ zipWith (*) (map fromIntegral w8s) (iterate (*256) 1)
 
 word8ListToString :: [Word8] -> String
 word8ListToString w8s = map (chr . fromIntegral) w8s
+
+word8ToBoolean :: [Word8] -> Bool
+word8ToBoolean [] = error $ "Not a boolean"
+word8ToBoolean w8s|w8s!!0==1=True
+                  |w8s!!0==0=False
+                  |otherwise = error $ "Not a boolean"
+
+booleanToWord8List :: Bool -> [Word8]
+booleanToWord8List True = [1]
+booleanToWord8List False = [0]
+booleanToWord8List _ = []
 
 intToHex :: Int -> String
 intToHex x = showIntAtBase 16 intToDigit x ""

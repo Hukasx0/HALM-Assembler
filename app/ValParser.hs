@@ -39,16 +39,22 @@ derefParser :: Parser Value
 derefParser = Deref <$> (between (char '[') (char ']') (many1 letter))
 
 reverseParser :: Parser Value
-reverseParser = Rev <$> (string "reverse" >> spaces >> (try anyValParser <|> fileConParser))
+reverseParser = Rev <$> (string "reverse" >> many1 space >> (try anyValParser <|> fileConParser))
 
 revManyParser :: Parser Value
-revManyParser = RevMany <$> (string "reverseMany" >> spaces >> (anyValParser `sepBy` (char ',') ))
+revManyParser = RevMany <$> (string "reverseMany" >> many1 space >> (anyValParser `sepBy` (char ',') ))
 
 sortParser :: Parser Value
-sortParser = Sort <$> (string "sort" >> spaces >> (try anyValParser <|> fileConParser))
+sortParser = Sort <$> (string "sort" >> many1 space >> (try anyValParser <|> fileConParser))
 
 sortManyParser :: Parser Value
-sortManyParser = SortMany <$> (string "sortMany" >> spaces >> (anyValParser `sepBy` (char ',') ))
+sortManyParser = SortMany <$> (string "sortMany" >> many1 space >> (anyValParser `sepBy` (char ',') ))
+
+filterParser :: Parser Value
+filterParser = Filter <$> (string "filterx" >> spaces >> mathParser) <*> (many1 space >> ((try anyValParser <|> fileConParser) `sepBy` (char ',') ))
+
+mapParser :: Parser Value
+mapParser = Filter <$> (string "mapx" >> spaces >> mathParser) <*> (many1 space >> (anyValParser `sepBy` (char ',') ))
 
 countParser :: Parser Value
 countParser = Count <$> (string "count" >> spaces >> (try anyValParser <|> fileConParser))
@@ -69,10 +75,10 @@ fileConParser :: Parser Value
 fileConParser = FileCon <$> (char '(' >> spaces >> string "readF" >> spaces >> char '=' >> spaces >> pureStringParser <* spaces <* char ')')
 
 anyValParser :: Parser Value
-anyValParser =try paramParser <|>try countParser <|> try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try registerParser <|> try hexParser <|> try octParser <|> try binParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
+anyValParser =try filterParser<|>try paramParser <|>try countParser <|> try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try registerParser <|> try hexParser <|> try octParser <|> try binParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
 
 onlyValParser :: Parser Value
-onlyValParser =try paramParser <|>try countParser <|> try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try hexParser <|> try intParser <|> try octParser <|> try binParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
+onlyValParser =try filterParser<|>try paramParser <|>try countParser <|> try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try hexParser <|> try intParser <|> try octParser <|> try binParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
 
 registerParser :: Parser Value
 registerParser = try registerParser8 <|> registerParser16
@@ -104,6 +110,8 @@ valToBin(SortMany a) mT =sort $ concat $ map (\v -> valToBin v mT) a
 valToBin(Count a) mT = intToWord8List $ length $ (valToBin a mT)
 valToBin(Ret _) _ = [0]
 valToBin(Retr _) _ = [0]
+valToBin(Filter (Math op (Parameter "x") b) vals) mT = concat $ map (\f -> valToBin f mT) (filter (\v -> word8ToBoolean $ mathInterpreter op v b mT) (concat $ map (\val -> map (\w8 ->Int (show $ word8ListToInt $ [w8])) (valToBin val mT)) vals))
+valToBin(Filter (Math op b (Parameter "x")) vals) mT = concat $ map (\f -> valToBin f mT) (filter (\v -> word8ToBoolean $ mathInterpreter op b v mT) (concat $ map (\val -> map (\w8 ->Int (show $ word8ListToInt $ [w8])) (valToBin val mT)) vals))
 valToBin(Math operator a b) mT = mathInterpreter operator a b mT
 valToBin(UseM macro) mT = case  (lookup macro mT ) of
                         Just value -> valToBin value mT
@@ -113,6 +121,7 @@ mathInterpreter :: String -> Value -> Value -> MacroTable -> [Word8]
 mathInterpreter "times" (Math a c d) b mT= concat $ replicate (word8ListToInt $ (valToBin (Math a c d) mT)) (valToBin b mT)
 mathInterpreter "times" a b mT= concat $ replicate (word8ListToInt $ (valToBin a mT)) (valToBin b mT)
 mathInterpreter "+" a b mT= valToBin (Int <$> show  $ ( (word8ListToInt $ valToBin a mT) + (word8ListToInt $ valToBin b mT) ) ) mT
+mathInterpreter "%" a b mT= valToBin (Int <$> show  $ ( (word8ListToInt $ valToBin a mT) `mod` (word8ListToInt $ valToBin b mT) ) ) mT
 mathInterpreter "-" a b mT= valToBin (Int <$> show $ ( (word8ListToInt $ valToBin a mT) - (word8ListToInt $ valToBin b mT) )) mT
 mathInterpreter "*" a b mT= valToBin (Int <$> show $ ( (word8ListToInt $ valToBin a mT) * (word8ListToInt $ valToBin b mT) )) mT
 mathInterpreter "/" a b mT= valToBin (Int <$> show $  ( (word8ListToInt $ valToBin a mT) `div` (word8ListToInt $ valToBin b mT) )) mT
@@ -129,7 +138,12 @@ mathInterpreter "or" a b mT |((word8ListToInt $ valToBin a mT)==1 || (word8ListT
                             |otherwise=[0]
 mathInterpreter "||" a b mT |((word8ListToInt $ valToBin a mT)==1 || (word8ListToInt $ valToBin b mT)==1)=[1]
                             |otherwise=[0]
+mathInterpreter ">" a b mT = booleanToWord8List $ ((word8ListToInt $ valToBin a mT)>(word8ListToInt $ valToBin b mT))
+mathInterpreter ">=" a b mT = booleanToWord8List $ ((word8ListToInt $ valToBin a mT)>=(word8ListToInt $ valToBin b mT))
+mathInterpreter "<" a b mT = booleanToWord8List $ ((word8ListToInt $ valToBin a mT)<(word8ListToInt $ valToBin b mT))
+mathInterpreter "<=" a b mT = booleanToWord8List $ ((word8ListToInt $ valToBin a mT)<=(word8ListToInt $ valToBin b mT))
 mathInterpreter _ _ _ _ = error $ "Not known operation in brackets (operation value1 value2)"
+
 
 getLabelAddr :: String -> LabelTable -> [Word8]
 getLabelAddr lblName lT = case  (lookup lblName lT ) of
