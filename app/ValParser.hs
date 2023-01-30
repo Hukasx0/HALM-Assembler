@@ -35,6 +35,12 @@ stringParser = Str <$> (between (char '"') (char '"') (many (noneOf "\"")))
 pointerParser :: Parser Value
 pointerParser = Pointer <$> (many1 letter)
 
+arrayParser :: Parser Value
+arrayParser = Array <$> (char '[' >> spaces >> (anyValParser `sepBy` (char ',') ) <* spaces <* char ']')
+
+darrayParser :: Parser Value
+darrayParser = Darr <$> (char '[' >> spaces >> anyValParser) <*> (spaces >> string ".." >> spaces >> anyValParser <* spaces <* char ']')
+
 derefParser :: Parser Value
 derefParser = Deref <$> (between (char '[') (char ']') (many1 letter))
 
@@ -51,10 +57,10 @@ sortManyParser :: Parser Value
 sortManyParser = SortMany <$> (string "sortMany" >> many1 space >> (anyValParser `sepBy` (char ',') ))
 
 filterParser :: Parser Value
-filterParser = Filter <$> (string "filterx" >> spaces >> mathParser) <*> (many1 space >> ((try anyValParser <|> fileConParser) `sepBy` (char ',') ))
+filterParser = Filter <$> (string "filterx" >> spaces >> mathParser) <*> (many1 space >> ((try anyValParser <|>try fileConParser <|> promptParser) `sepBy` (char ',') ))
 
 mapParser :: Parser Value
-mapParser = Filter <$> (string "mapx" >> spaces >> mathParser) <*> (many1 space >> (anyValParser `sepBy` (char ',') ))
+mapParser = Map <$> (string "mapx" >> spaces >> mathParser) <*> (many1 space >> (anyValParser `sepBy` (char ',') ))
 
 countParser :: Parser Value
 countParser = Count <$> (string "count" >> spaces >> (try anyValParser <|> fileConParser))
@@ -74,11 +80,14 @@ macroParser = UseM <$> (char '\\' >> many1 letter)
 fileConParser :: Parser Value
 fileConParser = FileCon <$> (char '(' >> spaces >> string "readF" >> spaces >> char '=' >> spaces >> pureStringParser <* spaces <* char ')')
 
+promptParser :: Parser Value
+promptParser = Prompt <$> (char '(' >> spaces >>string "prompt" >> spaces >> char '='  >> spaces >> pureStringParser <* spaces <* char ')')
+
 anyValParser :: Parser Value
-anyValParser =try filterParser<|>try paramParser <|>try countParser <|> try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try registerParser <|> try hexParser <|> try octParser <|> try binParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
+anyValParser =try filterParser<|>try mapParser<|>try paramParser <|>try countParser <|>try darrayParser<|>try arrayParser<|>try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try registerParser <|> try hexParser <|> try octParser <|> try binParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
 
 onlyValParser :: Parser Value
-onlyValParser =try filterParser<|>try paramParser <|>try countParser <|> try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try hexParser <|> try intParser <|> try octParser <|> try binParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
+onlyValParser =try filterParser<|>try mapParser<|>try paramParser <|>try countParser <|>try darrayParser<|>try arrayParser<|>try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try hexParser <|> try intParser <|> try octParser <|> try binParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
 
 registerParser :: Parser Value
 registerParser = try registerParser8 <|> registerParser16
@@ -103,6 +112,8 @@ valToBin(Oct x) _= intToWord8List $ getOctFromStr x
 valToBin(Bin x) _ =  intToWord8List $ getBinFromStr $ x
 valToBin(Ch d) _ = [(fromIntegral $ (fromEnum d))]
 valToBin(Str e) _ = map (\x -> fromIntegral $ fromEnum x) e
+valToBin(Array e) mT = concat $ map (\x -> valToBin x mT) e
+valToBin(Darr x y) mT = concat $ map (intToWord8List) [(word8ListToInt $ valToBin x mT)..(word8ListToInt $ valToBin y mT)]
 valToBin(Rev a) mT = reverse $ (valToBin a mT)
 valToBin(RevMany a) mT =reverse $ concat $ map (\v -> valToBin v mT) a
 valToBin(Sort a) mT = sort $ (valToBin a mT)
@@ -110,12 +121,27 @@ valToBin(SortMany a) mT =sort $ concat $ map (\v -> valToBin v mT) a
 valToBin(Count a) mT = intToWord8List $ length $ (valToBin a mT)
 valToBin(Ret _) _ = [0]
 valToBin(Retr _) _ = [0]
-valToBin(Filter (Math op (Parameter "x") b) vals) mT = concat $ map (\f -> valToBin f mT) (filter (\v -> word8ToBoolean $ mathInterpreter op v b mT) (concat $ map (\val -> map (\w8 ->Int (show $ word8ListToInt $ [w8])) (valToBin val mT)) vals))
-valToBin(Filter (Math op b (Parameter "x")) vals) mT = concat $ map (\f -> valToBin f mT) (filter (\v -> word8ToBoolean $ mathInterpreter op b v mT) (concat $ map (\val -> map (\w8 ->Int (show $ word8ListToInt $ [w8])) (valToBin val mT)) vals))
+--valToBin(Filter (Math op (Parameter "x") b) vals) mT = concat $ map (\f -> valToBin f mT) (filter (\v -> word8ToBoolean $ mathInterpreter op v b mT) (concat $ map (\val -> map (\w8 ->Int (show $ word8ListToInt $ [w8])) (valToBin val mT)) vals))
+--valToBin(Filter (Math op b (Parameter "x")) vals) mT = concat $ map (\f -> valToBin f mT) (filter (\v -> word8ToBoolean $ mathInterpreter op b v mT) (concat $ map (\val -> map (\w8 ->Int (show $ word8ListToInt $ [w8])) (valToBin val mT)) vals))
+valToBin(Filter a vals) mT = concat $ map (\f -> valToBin f mT) (filter (\v -> word8ToBoolean $ valToBin (getParamX a v) mT) (concat $ map (\val -> map (\w8 ->Int (show $ word8ListToInt $ [w8])) (valToBin val mT)) vals))
+--valToBin(Map (Math op (Parameter "x") b) vals) mT = concat $ (map (\v -> mathInterpreter op v b mT) (concat $ map (\val -> map (\w8 ->Int (show $ word8ListToInt $ [w8])) (valToBin val mT)) vals))
+--valToBin(Map (Math op b (Parameter "x")) vals) mT = concat $ (map (\v -> mathInterpreter op b v mT) (concat $ map (\val -> map (\w8 ->Int (show $ word8ListToInt $ [w8])) (valToBin val mT)) vals))
+valToBin(Map a vals) mT = concat $ (map (\v -> valToBin (getParamX a v) mT) (concat $ map (\val -> map (\w8 ->Int (show $ word8ListToInt $ [w8])) (valToBin val mT)) vals))
 valToBin(Math operator a b) mT = mathInterpreter operator a b mT
 valToBin(UseM macro) mT = case  (lookup macro mT ) of
                         Just value -> valToBin value mT
                         Nothing -> error $ "This macro doesn't exist!"
+
+getParamX :: Value -> Value -> Value
+getParamX(Math op (Parameter "x") (Parameter "x")) xVal =(Math op xVal xVal) 
+getParamX(Math op (Parameter "x") b) xVal =(Math op xVal b) 
+getParamX(Math op b (Parameter "x")) xVal =(Math op b xVal) 
+getParamX(Math op (Math a b c) (Math d e f)) xVal= (Math op (getParamX (Math a b c) xVal) (getParamX (Math d e f) xVal))
+getParamX(Math op (Math a b c) d) xVal= (Math op (getParamX (Math a b c) xVal) d)
+getParamX(Math op d (Math a b c)) xVal= (Math op d (getParamX (Math a b c) xVal))
+getParamX(Filter a b) _=(Filter a b)
+getParamX(Map a b) _=(Map a b)
+getParamX a _ = a
 
 mathInterpreter :: String -> Value -> Value -> MacroTable -> [Word8]
 mathInterpreter "times" (Math a c d) b mT= concat $ replicate (word8ListToInt $ (valToBin (Math a c d) mT)) (valToBin b mT)

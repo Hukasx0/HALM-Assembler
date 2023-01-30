@@ -24,7 +24,7 @@ finalParser = try movParser <|> try interruptParser <|> try incParser <|> try de
               <|> try addByParser <|> try doShParser <|> try lineCommentParser 
               <|> try commentParser <|>try dispParser <|>try dispAParser <|>try useAsParser
               <|> try showVParser <|> try defMacroParser<|>try defMlMPacroParser<|> try defMlMacroParser 
-              <|>try useMLMPParser<|> try useMLMParser <|> try fillBytesParser <|> try addParser 
+              <|>try useMLMParser<|> try useMLMPParser <|> try fillBytesParser <|> try addParser 
               <|> try subParser <|> try negParser <|> try xorParser <|> try defLabelParser
               <|> try includeParser <|>try ifParser <|>try pushParser <|>try popParser
               <|> try shadowParser <|> try defAsParser <|>try setOriginParser <|> foreachParser
@@ -46,7 +46,10 @@ isUnixRep input= T.unpack $ T.intercalate (T.pack $ show $ isUnix) (T.splitOn (T
 
 main :: IO ()
 main = do
-          fileName <- head <$> getArgs
+          args <- getArgs
+          if args==[] then error $ "cannot start without file -> usage: ./halm file.halm"
+          else pure () 
+          let fileName = head $ args
           fContent <- (includeFiles (getFileName $ fileName) (getDir $ fileName)) 
           let content = (isUnixRep $ isWinRep $ (replacefNameNoExt (replacefName (replaceFpath (fContent ++ libList) (getDir $ fileName)) (getFileName $ fileName))) (getFileNameWithoutExt $ fileName))
           --putStrLn $ content

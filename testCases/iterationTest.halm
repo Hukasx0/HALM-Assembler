@@ -1,0 +1,9 @@
+def data = [\asciiLow..\asciiHigh]
+
+def filterLetters = filterx (&& (>= 'x \letterLow) (<= 'x \letterHigh)) \data
+
+def onlyLetters = filterx (|| (> 'x "`") (< 'x '[')) \filterLetters
+
+def coolDisplay = mapx (++ 10 (++ "letter: " 'x)) \onlyLetters
+
+show str \coolDisplay

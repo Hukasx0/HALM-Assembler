@@ -42,7 +42,7 @@ showVParser = ShowV <$> (string "show" >> many1 space >> (try (string "str") <|>
                     )) <*> (many1 space >> (hlAnyValParser `sepBy` (char ',') ))
 
 hlAnyValParser :: Parser Value
-hlAnyValParser = try anyValParser <|> fileConParser 
+hlAnyValParser = try anyValParser <|>try fileConParser <|> promptParser
 
 lineCommentParser :: Parser Operation
 lineCommentParser = Comment <$> (string "--" >> many (noneOf "\n"))
@@ -63,7 +63,7 @@ defAsParser :: Parser Operation
 defAsParser = DefAs <$> (string "def" >> many1 space >> string "as" >> many1 space >> many1 letter ) <*> (many1 space >> many1 letter) <*> (spaces >> char '=' >> spaces >> char '{' >> spaces >> many1 insParser <* spaces <* char '}')
 
 useAsParser :: Parser Operation
-useAsParser = UseAs <$> (string "use" >> many1 space >> many1 letter) <*> (spaces >> string "->" >> spaces >> many1 letter)
+useAsParser = UseAs <$> (many1 letter) <*> (spaces >> string "->" >> spaces >> many1 letter)
 
 foreachParser :: Parser Operation
 foreachParser = Foreach <$> (string "foreach" >> many1 space >> many1 letter) <*> (many1 space >> anyValParser `sepBy` (char ',') ) <*>  (many1 space >> char '{' >> spaces >>many1 insParser <* char '}')
@@ -98,6 +98,14 @@ insToIO :: Operation -> MacroTable -> MLMacroTable -> MLMPacroTable -> IO ()
 insToIO (DoSh command) _ _ _= void $ system command
 insToIO (DispA val) _ _ _= print $ val
 insToIO (Disp val) mT _ _= print (valToBin val mT)
+insToIO (ShowV x [(Prompt str)]) mt mlm mp=  do
+                                        putStrLn str
+                                        inp <- getLine 
+                                        insToIO (ShowV x [(Str inp)]) mt mlm mp
+insToIO (ShowV x [(Filter y [(Prompt str)])]) mt mlm mp=  do
+                                        putStrLn str
+                                        inp <- getLine 
+                                        insToIO (ShowV x [Filter y [(Str inp)]]) mt mlm mp
 insToIO (ShowV x [(FileCon y)]) mt mlm mp = do
                                           fCon <- B.readFile y
                                           insToIO (ShowV x [(Str (word8ListToString $ B.unpack $ fCon))]) mt mlm mp

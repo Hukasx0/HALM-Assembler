@@ -68,10 +68,10 @@ addByParser :: Parser Operation
 addByParser = AdBy <$> (string "addBytes" >> spaces >> char '=' >> spaces >> (onlyValParser `sepBy` (char ',') ))
 
 useMLMParser :: Parser Operation
-useMLMParser = UseMLM <$> (string "use" >> many1 space >> many1 letter)
+useMLMParser = UseMLM <$> (many1 letter <* spaces <* char '(' <* spaces <* char ')')
 
 useMLMPParser :: Parser Operation
-useMLMPParser = UseMLMP <$> (string "use" >> many1 space >> many1 letter) <*> (spaces >> char '(' >> spaces >> (onlyValParser `sepBy` (char ',') ) <* spaces <* char ')')
+useMLMPParser = UseMLMP <$> (many1 letter) <*> (spaces >> char '(' >> spaces >> (onlyValParser `sepBy` (char ',') ) <* spaces <* char ')')
 
 fillBytesParser :: Parser Operation
 fillBytesParser = FillB <$> (string "fillBytes" >> many1 space >> onlyValParser) <*> (many1 space >> onlyValParser)

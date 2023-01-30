@@ -16,7 +16,7 @@ type ShadowTable = [(String,String,[Operation])]
 data Value = Register8 String | Register16 String | Int String | Hex String | Oct String | Bin String | Ch Char | Str String 
              | Math String Value Value | UseM String | Pointer String | Deref Label | Ret Operation | Retr Operation
              | Rev Value | Sort Value | SortMany [Value] | RevMany [Value] | Parameter String | FileCon String | Count Value
-             | Filter Value [Value]
+             | Filter Value [Value] | Map Value [Value] | Array [Value] | Darr Value Value | Prompt String
                 deriving(Eq,Show)
 
 data Operation = Mov Value Value | Interrupt Value | Inc Value | Dec Value | Cmp Value Value | Jmp Label Int 
