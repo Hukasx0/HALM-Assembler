@@ -39,7 +39,7 @@ dispAParser = DispA <$> (string "Disp" >> many1 space >> anyValParser)
 showVParser :: Parser Operation
 showVParser = ShowV <$> (string "show" >> many1 space >> (try (string "str") <|> try (string "chars") <|>try (string "intArr") <|> try (string "int")<|> try (string "hexArr")
                     <|> try (string "hex") <|>try (string "octArr") <|> try (string "oct") <|> try (string "binArr") <|> try (string "bin") <|> try (string "bool") 
-                    )) <*> (many1 space >> (hlAnyValParser `sepBy` (char ',') ))
+                    )) <*> (many1 space >> (hlAnyValParser `sepBy` (char ',' <* spaces) ))
 
 hlAnyValParser :: Parser Value
 hlAnyValParser = try anyValParser <|>try fileConParser <|> promptParser
