@@ -97,44 +97,37 @@ ifParser = If <$> (string "if" >> spaces >> (try onlyValParser <|>try retParser 
 insToIO :: Operation -> MacroTable -> MLMacroTable -> MLMPacroTable -> IO ()
 insToIO (DoSh command) _ _ _= void $ system command
 insToIO (DispA val) _ _ _= print $ val
-insToIO (Disp val) mT _ _= print (valToBin val mT)
-insToIO (ShowV x [(Prompt str)]) mt mlm mp=  do
-                                        putStrLn str
-                                        inp <- getLine 
-                                        insToIO (ShowV x [(Str inp)]) mt mlm mp
-insToIO (ShowV x [(Filter y [(Prompt str)])]) mt mlm mp=  do
-                                        putStrLn str
-                                        inp <- getLine 
-                                        insToIO (ShowV x [Filter y [(Str inp)]]) mt mlm mp
-insToIO (ShowV x [(FileCon y)]) mt mlm mp = do
-                                          fCon <- B.readFile y
-                                          insToIO (ShowV x [(Str (word8ListToString $ B.unpack $ fCon))]) mt mlm mp
-insToIO (ShowV x [(Rev (FileCon y))]) mt mlm mp = do
-                                          fCon <- B.readFile y
-                                          insToIO (ShowV x [(Str (reverse $ word8ListToString $ B.unpack $ fCon))]) mt mlm mp
-insToIO (ShowV x [(Sort (FileCon y))]) mt mlm mp = do
-                                          fCon <- B.readFile y
-                                          insToIO (ShowV x [(Str (sort $ word8ListToString $ B.unpack $ fCon))]) mt mlm mp
-insToIO (ShowV x [(Count (FileCon y))]) mt mlm mp = do
-                                          fCon <- B.readFile y
-                                          insToIO (ShowV x [(Int (show $ length $ B.unpack $ fCon))]) mt mlm mp
-insToIO (ShowV x [(Filter z [(FileCon y)])]) mt mlm mp = do
-                                          fCon <- B.readFile y
-                                          insToIO (ShowV x [(Str (word8ListToString $ valToBin (Filter z [(Str (word8ListToString $ B.unpack $ fCon))]) mt))]) mt mlm mp
-insToIO (ShowV x [(Filter xyz [((Filter z [(FileCon y)]))])]) mt mlm mp = do
-                                          fCon <- B.readFile y
-                                          insToIO (ShowV x [(Str (word8ListToString $ valToBin (Filter xyz [(Filter z [(Str (word8ListToString $ B.unpack $ fCon))])]) mt))]) mt mlm mp
-insToIO (ShowV "str" val) mt _ _=( mapM_ (\v -> putStr $ word8ListToString $ (valToBin v mt)) val ) >>= \_ -> putStrLn $ ""
---insToIO (ShowV "chars" val) mT _ _=mapM_ (\v -> mapM_ (\i -> putStr $ "['" ++ (word8ListToString $ [i]) ++ "']") (valToBin v mT) >> putStrLn "") val
-insToIO (ShowV "chars" val) mT _ _=putStrLn $ intercalate ", " (concat $ map (\v -> map (\x ->word8ListToString $ [x]) (valToBin v mT)) val)
-insToIO (ShowV "int" val) mT _ _=(mapM_ (\v -> putStr $ show $ word8ListToInt $ (valToBin v mT)) val) >>= \_ -> putStrLn $ ""
-insToIO (ShowV "intArr" val) mT _ _=putStrLn $ intercalate ", " (map (\v ->show $ valToBin v mT) val)
-insToIO (ShowV "hexArr" val) mT _ _=putStrLn $ intercalate ", " (concat $ map (\v -> map (\x ->"0x"++(intToHex $ word8ListToInt $ [x])) (valToBin v mT)) val)
-insToIO (ShowV "hex" val) mT _ _=(mapM_ (\v -> putStr $ intToHex $ word8ListToInt $ (valToBin v mT)) val) >>= \_ -> putStrLn $ ""
-insToIO (ShowV "oct" val) mT _ _=(mapM_ (\v -> putStrLn $ intToOct $ word8ListToInt $ (valToBin v mT)) val) >>= \_ -> putStrLn $ ""
-insToIO (ShowV "octArr" val) mT _ _=putStrLn $ intercalate ", " (concat $ map (\v -> map (\x ->"0o"++(intToOct $ word8ListToInt $ [x])) (valToBin v mT)) val)
-insToIO (ShowV "bin" val) mT _ _=(mapM_ (\v -> putStr $ intToBin $ word8ListToInt $ (valToBin v mT)) val) >>= \_ -> putStrLn $ ""
-insToIO (ShowV "binArr" val) mT _ _=putStrLn $ intercalate ", " (concat $ map (\v -> map (\x ->"0b"++(intToBin $ word8ListToInt $ [x])) (valToBin v mT)) val)
+insToIO (Disp val) mT _ _= getHLVal val mT >>= \v -> print $ v
+insToIO (ShowV "str" val) mt _ _=do
+                                 regVal <- mapM (\v -> getHLVal v mt) val
+                                 putStrLn $ word8ListToString $ concat $ regVal
+insToIO (ShowV "chars" val) mT _ _=do
+                                  regVal <- mapM (\v -> getHLVal v mT) val
+                                  putStrLn $ intercalate ", " (concat $ map (\v -> map (\x ->word8ListToString $ [x]) v) regVal)
+insToIO (ShowV "int" val) mT _ _=do
+                                regVal <- mapM (\v -> getHLVal v mT) val
+                                putStrLn $ show $ map (\rv -> word8ListToInt $ rv) regVal
+insToIO (ShowV "intArr" val) mT _ _=do
+                                    regVal <- mapM (\v -> getHLVal v mT) val
+                                    putStrLn $ intercalate ", " (map (show) regVal)
+insToIO (ShowV "hexArr" val) mT _ _=do
+                                    regVal <- mapM (\v -> getHLVal v mT) val
+                                    putStrLn $ intercalate ", " (concat $ map (\v -> map (\x ->"0x"++(intToHex $ word8ListToInt $ [x])) v) regVal)
+insToIO (ShowV "hex" val) mT _ _=do
+                                  regVal <- mapM (\v -> getHLVal v mT) val
+                                  putStrLn $ "0x" ++ (concat $ map (\rv -> intToHex $ word8ListToInt $ rv) regVal)
+insToIO (ShowV "oct" val) mT _ _=do
+                                  regVal <- mapM (\v -> getHLVal v mT) val
+                                  putStrLn $ "0o" ++ (concat $ map (\rv -> intToOct $ word8ListToInt $ rv) regVal)
+insToIO (ShowV "octArr" val) mT _ _=do
+                                    regVal <- mapM (\v -> getHLVal v mT) val
+                                    putStrLn $ intercalate ", " (concat $ map (\v -> map (\x ->"0o"++(intToOct $ word8ListToInt $ [x])) v) regVal)
+insToIO (ShowV "bin" val) mT _ _=do
+                                  regVal <- mapM (\v -> getHLVal v mT) val
+                                  putStrLn $ "0b" ++ (concat $ map (\rv -> intToBin $ word8ListToInt $ rv) regVal)
+insToIO (ShowV "binArr" val) mT _ _=do
+                                    regVal <- mapM (\v -> getHLVal v mT) val
+                                    putStrLn $ intercalate ", " (concat $ map (\v -> map (\x ->"0b"++(intToBin $ word8ListToInt $ [x])) v) regVal)
 insToIO (ShowV "bool" val) mT _ _|(word8ListToInt $ (valToBin (val!!0) mT))==1=putStrLn $ "True"
                                  |(word8ListToInt $ (valToBin (val!!0) mT))==0=putStrLn $ "False"
                                  |otherwise=putStrLn $ "Not a Boolean"

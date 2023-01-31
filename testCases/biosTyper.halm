@@ -1,4 +1,4 @@
-use clear           -- clear screen (multi line macro)
+clear()           -- clear screen (multi line macro)
 
 label IO
    mov ah,0         -- get user keyboard input
@@ -17,16 +17,16 @@ label display
    jmp IO           -- loop
 
 label backspace
-   use replaceChar  -- using multi line macro to replace character
+   replaceChar()  -- using multi line macro to replace character
    jmp IO           -- loop
 
 label tab
-    use manySpaces  -- using multi line macro to display x3 spaces
+    manySpaces()  -- using multi line macro to display x3 spaces
     jmp IO          -- loop
 
 label end
-   use clear        -- using multi line macro to clear the screen
-   use endTxt       -- using multi line macro to display text
+   clear()        -- using multi line macro to clear the screen
+   endTxt()       -- using multi line macro to display text
    jmp $            -- end of program
 
 fillBytes (- 512 2) 0x0

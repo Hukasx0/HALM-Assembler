@@ -3,6 +3,7 @@ module ValParser where
 import Text.Parsec
 import Text.Parsec.String
 import Data.List(sort)
+import qualified Data.ByteString.Lazy as B
 import Data.Word
 
 import Values
@@ -60,7 +61,7 @@ filterParser :: Parser Value
 filterParser = Filter <$> (string "filterx" >> spaces >> mathParser) <*> (many1 space >> ((try anyValParser <|>try fileConParser <|> promptParser) `sepBy` (char ',') ))
 
 mapParser :: Parser Value
-mapParser = Map <$> (string "mapx" >> spaces >> mathParser) <*> (many1 space >> (anyValParser `sepBy` (char ',') ))
+mapParser = Map <$> (string "mapx" >> spaces >> mathParser) <*> (many1 space >> ((try anyValParser <|>try fileConParser <|> promptParser) `sepBy` (char ',') ))
 
 countParser :: Parser Value
 countParser = Count <$> (string "count" >> spaces >> (try anyValParser <|> fileConParser))
@@ -84,10 +85,10 @@ promptParser :: Parser Value
 promptParser = Prompt <$> (char '(' >> spaces >>string "prompt" >> spaces >> char '='  >> spaces >> pureStringParser <* spaces <* char ')')
 
 anyValParser :: Parser Value
-anyValParser =try filterParser<|>try mapParser<|>try paramParser <|>try countParser <|>try darrayParser<|>try arrayParser<|>try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try registerParser <|> try hexParser <|> try octParser <|> try binParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
+anyValParser =try filterParser<|>try mapParser<|>try charParser<|>try paramParser <|>try countParser <|>try darrayParser<|>try arrayParser<|>try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try registerParser <|> try hexParser <|> try octParser <|> try binParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
 
 onlyValParser :: Parser Value
-onlyValParser =try filterParser<|>try mapParser<|>try paramParser <|>try countParser <|>try darrayParser<|>try arrayParser<|>try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try hexParser <|> try intParser <|> try octParser <|> try binParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
+onlyValParser =try filterParser<|>try mapParser<|>try charParser <|>try paramParser <|>try countParser <|>try darrayParser<|>try arrayParser<|>try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try hexParser <|> try intParser <|> try octParser <|> try binParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
 
 registerParser :: Parser Value
 registerParser = try registerParser8 <|> registerParser16
@@ -142,6 +143,26 @@ getParamX(Math op d (Math a b c)) xVal= (Math op d (getParamX (Math a b c) xVal)
 getParamX(Filter a b) _=(Filter a b)
 getParamX(Map a b) _=(Map a b)
 getParamX a _ = a
+
+getHLVal :: Value -> MacroTable -> IO [Word8]
+getHLVal(Rev a) mT =do
+                    rv <- (getHLVal a mT)
+                    pure $ (reverse $ rv)
+getHLVal(Sort a) mT =do
+                    rv <- (getHLVal a mT)
+                    pure $ (sort $ rv)
+getHLVal(Count a) mT =do
+                    rv <- (getHLVal a mT)
+                    pure $ (intToWord8List $ length $ rv)
+getHLVal(Filter a b) mT=do
+                        rv <- mapM (\v -> getHLVal v mT) b
+                        pure $ (valToBin (Filter a (map (\v -> (Str (word8ListToString $ v)) ) rv)) mT)
+getHLVal(Map a b) mT=do
+                        rv <- mapM (\v -> getHLVal v mT) b
+                        pure $ (valToBin (Map a (map (\v -> (Str (word8ListToString $ v)) ) rv)) mT)
+getHLVal(Prompt msg) mT = (putStrLn $ msg) >>= \_ -> getLine >>= \inp -> pure $ (valToBin (Str inp) mT)
+getHLVal(FileCon filename) mT = (B.readFile $ filename) >>= \fileData -> pure $ (valToBin (Str (word8ListToString $ B.unpack $ fileData)) mT)
+getHLVal a mT = pure $ valToBin a mT
 
 mathInterpreter :: String -> Value -> Value -> MacroTable -> [Word8]
 mathInterpreter "times" (Math a c d) b mT= concat $ replicate (word8ListToInt $ (valToBin (Math a c d) mT)) (valToBin b mT)

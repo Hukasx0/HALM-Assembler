@@ -68,6 +68,8 @@ main = do
                           let final = replaceValues shadRep (concat $ (map clearData fillBDone))        
                           putStrLn ("Writing binary to "++fileName++".bin")
                           putStrLn $ "IO output:"
-                          B.writeFile (fileName++".bin") (B.pack $ concat $ (codeToIns final mTable mlmTable labelTable originVal))
+                          let toFile = concat $ codeToIns final mTable mlmTable labelTable originVal
+                          if toFile==[] then pure ()
+                          else B.writeFile (fileName++".bin") (B.pack $ toFile)
                          -- print (concat $ (codeToIns final mTable mlmTable labelTable originVal))
                           codeToIO shadRep mTable mlmTable mlmpTable

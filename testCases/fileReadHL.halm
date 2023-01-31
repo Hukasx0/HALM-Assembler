@@ -25,9 +25,9 @@ def readSelf(type) = {
 mov al,123
 fillBytes 10 0xa
 
-use readSelf("hex")
-use readSelf("int")
-use readSelf("size")
+readSelf("hex")
+readSelf("int")
+readSelf("size")
 
 -- NOTE: This macro is builtin, you can use this in every file
 -- use readSelf(<"hex" or "oct" or "bin" or "int" or "str" or "chars" or "size">)
