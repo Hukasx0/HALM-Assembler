@@ -107,6 +107,8 @@ valToBin(Register16 a) _ |a=="ax"=[8]
                        |a=="dx"=[10]
                        |a=="bx"=[11]
 
+valToBin(Bytes x) _= x
+valToBin(Byte x) _=[x]
 valToBin(Int x) _ = intToWord8List (read $ x)
 valToBin(Hex c) _ = intToWord8List $ getHexFromStr $ c
 valToBin(Oct x) _= intToWord8List $ getOctFromStr x 
@@ -122,27 +124,48 @@ valToBin(SortMany a) mT =sort $ concat $ map (\v -> valToBin v mT) a
 valToBin(Count a) mT = intToWord8List $ length $ (valToBin a mT)
 valToBin(Ret _) _ = [0]
 valToBin(Retr _) _ = [0]
+valToBin(Parameter a) _ = error $ ("Trying to use parameter '"++a++"' in wrong place")
 --valToBin(Filter (Math op (Parameter "x") b) vals) mT = concat $ map (\f -> valToBin f mT) (filter (\v -> word8ToBoolean $ mathInterpreter op v b mT) (concat $ map (\val -> map (\w8 ->Int (show $ word8ListToInt $ [w8])) (valToBin val mT)) vals))
 --valToBin(Filter (Math op b (Parameter "x")) vals) mT = concat $ map (\f -> valToBin f mT) (filter (\v -> word8ToBoolean $ mathInterpreter op b v mT) (concat $ map (\val -> map (\w8 ->Int (show $ word8ListToInt $ [w8])) (valToBin val mT)) vals))
-valToBin(Filter a vals) mT = concat $ map (\f -> valToBin f mT) (filter (\v -> word8ToBoolean $ valToBin (getParamX a v) mT) (concat $ map (\val -> map (\w8 ->Int (show $ word8ListToInt $ [w8])) (valToBin val mT)) vals))
+valToBin(Filter a vals) mT = concat $ map (\f -> valToBin f mT) (filter (\v -> word8ToBoolean $ valToBin (getParamX a v) mT) (concat $ map (\val -> map (\w8 ->Bytes ([w8])) (valToBin val mT)) vals))
 --valToBin(Map (Math op (Parameter "x") b) vals) mT = concat $ (map (\v -> mathInterpreter op v b mT) (concat $ map (\val -> map (\w8 ->Int (show $ word8ListToInt $ [w8])) (valToBin val mT)) vals))
 --valToBin(Map (Math op b (Parameter "x")) vals) mT = concat $ (map (\v -> mathInterpreter op b v mT) (concat $ map (\val -> map (\w8 ->Int (show $ word8ListToInt $ [w8])) (valToBin val mT)) vals))
-valToBin(Map a vals) mT = concat $ (map (\v -> valToBin (getParamX a v) mT) (concat $ map (\val -> map (\w8 ->Int (show $ word8ListToInt $ [w8])) (valToBin val mT)) vals))
+valToBin(Map a vals) mT = concat $ (map (\v -> valToBin (getParamX a v) mT) (concat $ map (\val -> map (\w8 ->Bytes ([w8])) (valToBin val mT)) vals))
 valToBin(Math operator a b) mT = mathInterpreter operator a b mT
 valToBin(UseM macro) mT = case  (lookup macro mT ) of
                         Just value -> valToBin value mT
                         Nothing -> error $ "This macro doesn't exist!"
 
+paramOrVal :: Value -> MacroTable -> [(String,Value)] -> [Word8]
+paramOrVal (Parameter name) mT pT=case (lookup name pT) of
+                                Just value -> (valToBin value mT)
+                                Nothing -> error $ "Parameter value not set!"
+paramOrVal (Math a b c) mT pT =( valToBin (Math a (Bytes (paramOrVal b mT pT)) (Bytes (paramOrVal c mT pT))) mT )
+paramOrVal (Filter (Math a b c) d) mT pT =(valToBin (Filter (Math a (isThisX b mT pT) (isThisX c mT pT)) (map (\v -> Bytes (paramOrVal v mT pT) ) d)) mT) 
+paramOrVal (Map (Math a b c) d) mT pT =(valToBin (Map (Math a (isThisX b mT pT) (isThisX c mT pT)) (map (\v -> Bytes (paramOrVal v mT pT) ) d)) mT)
+paramOrVal (Rev a) mT pT = valToBin (Rev (Bytes (paramOrVal a mT pT))) pT
+paramOrVal (Sort a) mT pT = valToBin (Sort (Bytes (paramOrVal a mT pT))) pT
+paramOrVal (Count a) mT pT = valToBin (Count (Bytes (paramOrVal a mT pT))) pT
+paramOrVal a mT _ = valToBin a mT
+
 getParamX :: Value -> Value -> Value
+getParamX(Parameter "x") xVal = xVal
 getParamX(Math op (Parameter "x") (Parameter "x")) xVal =(Math op xVal xVal) 
 getParamX(Math op (Parameter "x") b) xVal =(Math op xVal b) 
 getParamX(Math op b (Parameter "x")) xVal =(Math op b xVal) 
-getParamX(Math op (Math a b c) (Math d e f)) xVal= (Math op (getParamX (Math a b c) xVal) (getParamX (Math d e f) xVal))
-getParamX(Math op (Math a b c) d) xVal= (Math op (getParamX (Math a b c) xVal) d)
-getParamX(Math op d (Math a b c)) xVal= (Math op d (getParamX (Math a b c) xVal))
+getParamX(Math op (Math a b c) (Math d e f)) xVal= (Math op (getParamX (Math a (getParamX b xVal) (getParamX c xVal)) xVal) (getParamX (Math d (getParamX e xVal) (getParamX f xVal)) xVal))
+getParamX(Math op (Math a b c) d) xVal= (Math op (getParamX (Math a (getParamX b xVal) (getParamX c xVal)) xVal) (getParamX d xVal))
+getParamX(Math op d (Math a b c)) xVal= (Math op (getParamX d xVal) (getParamX (Math a (getParamX b xVal) (getParamX c xVal)) xVal))
 getParamX(Filter a b) _=(Filter a b)
 getParamX(Map a b) _=(Map a b)
 getParamX a _ = a
+
+isThisX :: Value -> MacroTable -> [(String,Value)] -> Value
+isThisX (Parameter "x") _ _= (Parameter "x")
+isThisX (Parameter name) mT pT=case (lookup name pT) of
+                                Just value -> (Bytes ( valToBin value mT))
+                                Nothing -> error $ "This parameter does not exist"
+isThisX a _ _ = a
 
 getHLVal :: Value -> MacroTable -> IO [Word8]
 getHLVal(Rev a) mT =do
@@ -161,7 +184,7 @@ getHLVal(Map a b) mT=do
                         rv <- mapM (\v -> getHLVal v mT) b
                         pure $ (valToBin (Map a (map (\v -> (Str (word8ListToString $ v)) ) rv)) mT)
 getHLVal(Prompt msg) mT = (putStrLn $ msg) >>= \_ -> getLine >>= \inp -> pure $ (valToBin (Str inp) mT)
-getHLVal(FileCon filename) mT = (B.readFile $ filename) >>= \fileData -> pure $ (valToBin (Str (word8ListToString $ B.unpack $ fileData)) mT)
+getHLVal(FileCon filename) mT = (B.readFile $ filename) >>= \fileData -> pure $ (B.unpack $ fileData)
 getHLVal a mT = pure $ valToBin a mT
 
 mathInterpreter :: String -> Value -> Value -> MacroTable -> [Word8]
@@ -173,6 +196,8 @@ mathInterpreter "-" a b mT= valToBin (Int <$> show $ ( (word8ListToInt $ valToBi
 mathInterpreter "*" a b mT= valToBin (Int <$> show $ ( (word8ListToInt $ valToBin a mT) * (word8ListToInt $ valToBin b mT) )) mT
 mathInterpreter "/" a b mT= valToBin (Int <$> show $  ( (word8ListToInt $ valToBin a mT) `div` (word8ListToInt $ valToBin b mT) )) mT
 mathInterpreter "++" a b mT= (valToBin a mT) ++ (valToBin b mT)
+mathInterpreter "if" a b mT |(valToBin a mT)==[1]=(valToBin b mT)
+                            |otherwise=[]
 mathInterpreter "==" a b mT |(valToBin a mT)==(valToBin b mT)=[1]
                             |otherwise=[0]
 mathInterpreter "!=" a b mT |(valToBin a mT)/=(valToBin b mT)=[1]

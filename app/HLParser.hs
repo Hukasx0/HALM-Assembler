@@ -7,7 +7,6 @@ import System.Exit
 import System.Process
 import System.FilePath
 import Control.Monad(void, replicateM_)
-import qualified Data.ByteString.Lazy as B
 import Data.List
 import Values
 import ValParser
@@ -80,7 +79,7 @@ insParser = (try movParser <* spaces) <|> (try interruptParser <* spaces) <|> (t
               <|> (try jgParser <* spaces) <|> (try jgeParser <* spaces) <|> (try jlParser <* spaces) <|> (try jleParser <* spaces)
               <|> (try addByParser <* spaces) <|> (try doShParser <* spaces) <|> (try lineCommentParser <* spaces) 
               <|> (try commentParser <* spaces) <|> (try dispParser <* spaces) <|> (try dispAParser <* spaces) <|> (try showVParser <* spaces)
-              <|> (try pushParser <* spaces) <|> (try popParser <* spaces) <|> (try ifParser <* spaces)
+              <|> (try pushParser <* spaces) <|> (try popParser <* spaces) <|> (try ifParser <* spaces) <|> (try foreachParser <* spaces)
 
 retInsParser :: Parser Operation
 retInsParser = try doShParser
@@ -150,12 +149,14 @@ insToIO (If (Retr (DoSh command)) operations) mT mlmtable mlmp
 insToIO (If statement operations) mT mlmtable mlmp |(word8ListToInt $ (valToBin statement mT))==1=mapM_ (\op -> insToIO op mT mlmtable mlmp) operations
                                                    |(word8ListToInt $ (valToBin statement mT))==0=pure ()
                                                    |otherwise=error $ "Wrong value in if statement"
-insToIO(Foreach param vals operations) mT mlm mlmp = mapM_ (\val -> mapM_ (\op -> insWparamsToIO op mT mlm [(param,val)]) operations) vals
+insToIO(Foreach param vals operations) mT mlm mlmp = mapM_ (\val -> mapM_ (\op -> insWparamsToIO op mT mlm [(param,val)]) operations) (concat $ map (\v ->(map (\tb -> Byte tb) (valToBin v mT))) vals)
 insToIO _ _ _ _= pure ()
 
 insWparamsToIO :: Operation -> MacroTable -> MLMacroTable -> [(String,Value)] -> IO ()
-insWparamsToIO (ShowV a b) mt mlm mp= (insToIO (ShowV a [(Str (word8ListToString $ concat $map (\x -> valOrParam x mp mt) b))] ) mt mlm [])
-insWparamsToIO (If a operations) mt mlm mp= (insToIO (If (Str (word8ListToString $ concat $map (\x -> valOrParam x mp mt) [a]) ) operations) mt mlm [])
+insWparamsToIO (ShowV a b) mt mlm mp= (insToIO (ShowV a [(Bytes (concat $map (\x -> paramOrVal x mt mp) b))] ) mt mlm [])
+insWparamsToIO (Disp a) mt mlm mp = (insToIO (Disp (Bytes (paramOrVal a mt mp))) mt mlm [])
+insWparamsToIO (If a operations) mt mlm mp= (insToIO (If (Bytes (concat $map (\x -> paramOrVal x mt mp) [a]) ) operations) mt mlm [])
+insWparamsToIO (Foreach a b c) mt mlm mp = insToIO (Foreach a (map (\v ->Bytes ( paramOrVal v mt mp)) b) c) mt mlm []
 insWparamsToIO a b c d = insToIO a b c []
 
 macroTable :: Operation -> MacroTable

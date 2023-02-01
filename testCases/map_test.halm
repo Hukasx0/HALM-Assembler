@@ -1,0 +1,16 @@
+def showUpper(str) = {
+    show str mapx (+
+                    (if   (&& (>= 'x 'a')  (<= 'x 'z'))   (- 'x 32) )
+                    (if   (|| (< 'x "a")   (> 'x "z") )     'x)   
+                   ) 'str
+}
+
+def showLower(str) = {
+    show str mapx (+
+                    (if   (&& (>= 'x 'A')  (<= 'x 'Z'))   (+ 'x 32) )
+                    (if   (|| (< 'x "A")   (> 'x "Z") )     'x)   
+                   ) 'str
+}
+
+showUpper("this is a TEST STRING!")
+showLower("THIS is A TeSt sTrInG?")
