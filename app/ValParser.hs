@@ -33,6 +33,9 @@ charParser = Ch <$> ( between (char '\'') (char '\'') (anyChar) )
 stringParser :: Parser Value
 stringParser = Str <$> (between (char '"') (char '"') (many (noneOf "\"")))
 
+emptyParser :: Parser Value
+emptyParser =  EmptyB <$> (spaces <* string "empty")
+
 pointerParser :: Parser Value
 pointerParser = Pointer <$> (many1 letter)
 
@@ -85,10 +88,10 @@ promptParser :: Parser Value
 promptParser = Prompt <$> (char '(' >> spaces >>string "prompt" >> spaces >> char '='  >> spaces >> pureStringParser <* spaces <* char ')')
 
 anyValParser :: Parser Value
-anyValParser =try filterParser<|>try mapParser<|>try charParser<|>try paramParser <|>try countParser <|>try darrayParser<|>try arrayParser<|>try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try registerParser <|> try hexParser <|> try octParser <|> try binParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
+anyValParser =try filterParser<|>try mapParser<|>try charParser<|>try paramParser <|>try countParser <|>try darrayParser<|>try arrayParser<|>try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try registerParser <|> try hexParser <|> try octParser <|> try binParser <|> try intParser <|> try charParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try emptyParser<|>try pointerParser <|>try derefParser
 
 onlyValParser :: Parser Value
-onlyValParser =try filterParser<|>try mapParser<|>try charParser <|>try paramParser <|>try countParser <|>try darrayParser<|>try arrayParser<|>try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try hexParser <|> try intParser <|> try octParser <|> try binParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try pointerParser <|>try derefParser
+onlyValParser =try filterParser<|>try mapParser<|>try charParser <|>try paramParser <|>try countParser <|>try darrayParser<|>try arrayParser<|>try revManyParser <|> try reverseParser <|>try sortManyParser <|> try sortParser<|>try hexParser <|> try intParser <|> try octParser <|> try binParser <|> try stringParser <|> try mathParser <|>try macroParser <|>try emptyParser<|>try pointerParser <|>try derefParser
 
 registerParser :: Parser Value
 registerParser = try registerParser8 <|> registerParser16
@@ -109,6 +112,7 @@ valToBin(Register16 a) _ |a=="ax"=[8]
 
 valToBin(Bytes x) _= x
 valToBin(Byte x) _=[x]
+valToBin(EmptyB _)_ = []
 valToBin(Int x) _ = intToWord8List (read $ x)
 valToBin(Hex c) _ = intToWord8List $ getHexFromStr $ c
 valToBin(Oct x) _= intToWord8List $ getOctFromStr x 
@@ -214,6 +218,9 @@ mathInterpreter ">" a b mT = booleanToWord8List $ ((word8ListToInt $ valToBin a 
 mathInterpreter ">=" a b mT = booleanToWord8List $ ((word8ListToInt $ valToBin a mT)>=(word8ListToInt $ valToBin b mT))
 mathInterpreter "<" a b mT = booleanToWord8List $ ((word8ListToInt $ valToBin a mT)<(word8ListToInt $ valToBin b mT))
 mathInterpreter "<=" a b mT = booleanToWord8List $ ((word8ListToInt $ valToBin a mT)<=(word8ListToInt $ valToBin b mT))
+mathInterpreter "<>" a b mT |(valToBin a mT)/=[]=(valToBin a mT)
+                            |(valToBin b mT)/=[]=(valToBin b mT)
+                            |otherwise=[]
 mathInterpreter _ _ _ _ = error $ "Not known operation in brackets (operation value1 value2)"
 
 

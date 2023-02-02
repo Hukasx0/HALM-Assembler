@@ -17,7 +17,7 @@ data Value = Register8 String | Register16 String | Int String | Hex String | Oc
              | Math String Value Value | UseM String | Pointer String | Deref Label | Ret Operation | Retr Operation
              | Rev Value | Sort Value | SortMany [Value] | RevMany [Value] | Parameter String | FileCon String | Count Value
              | Filter Value [Value] | Map Value [Value] | Array [Value] | Darr Value Value | Prompt String | Bytes [Word8]
-             | Byte Word8
+             | Byte Word8 | EmptyB ()
                 deriving(Eq,Show)
 
 data Operation = Mov Value Value | Interrupt Value | Inc Value | Dec Value | Cmp Value Value | Jmp Label Int 
@@ -97,9 +97,9 @@ readSelfLib = "def readSelf(type) = {\nif(== 'type \"hex\"){\nshow hexArr revers
                "\n}\n}\n"
 
 upperLower :: String
-upperLower = "def showUpper(str) = { show str mapx (+ (if (&& (>= 'x 'a') (<= 'x 'z')) (- 'x 32)) (if (|| (< 'x 'a') (> 'x 'z')) 'x) ) 'str }\n"
+upperLower = "def showUpper(str) = { show str mapx (<> (if (&& (>= 'x 'a') (<= 'x 'z')) (- 'x 32)) (if (|| (< 'x 'a') (> 'x 'z')) 'x) ) 'str }\n"
               ++
-              "def showLower(str) = { show str mapx (+ (if (&& (>= 'x 'A') (<= 'x 'Z')) (+ 'x 32)) (if (|| (< 'x 'A') (> 'x 'Z')) 'x) ) 'str }\n"
+              "def showLower(str) = { show str mapx (<> (if (&& (>= 'x 'A') (<= 'x 'Z')) (+ 'x 32)) (if (|| (< 'x 'A') (> 'x 'Z')) 'x) ) 'str }\n"
 
 asciiDefinitions :: String
 asciiDefinitions = "def asciiLow = 33\ndef asciiHigh = 126\ndef asciiSpace = 10\ndef letterLow = 65\ndef letterHigh = 122\n"
